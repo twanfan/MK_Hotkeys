@@ -13,15 +13,19 @@ CoordMode ToolTip
 TrayTip_title := "提示"
 
 
+
+
+
 ;从配置文件读取
-IniRead, tooltip_key, .\Config.ini, Key, tooltip_key
-IniRead, tooltip_prop_x, .\Config.ini, Position, tooltip_prop_x
-IniRead, tooltip_prop_y, .\Config.ini, Position, tooltip_prop_y
-IniRead, data_generated, .\Config.ini, Others, data_generated
+IniRead, tooltip_key, .\config.ini, Key, tooltip_key
+IniRead, tooltip_prop_x, .\config.ini, Position, tooltip_prop_x
+IniRead, tooltip_prop_y, .\config.ini, Position, tooltip_prop_y
+IniRead, data_generated, .\config.ini, Others, data_generated
 
 ;debug
 ToolTip, script running..., 0, 0, 19
 
+;清除托盘提示
 HideTrayTip() {
     TrayTip  ; Attempt to hide it the normal way.
     if SubStr(A_OSVersion,1,3) = "10." {
@@ -31,15 +35,13 @@ HideTrayTip() {
     }
 }
 
-    WinWait, ahk_class Notepad
-        HideTrayTip()
-        TrayTip %TrayTip_title%, running detected, , 33
-    WinWaitActive, ahk_class Notepad
-        HideTrayTip()
-        TrayTip %TrayTip_title%, active detected, , 33
-    WinWaitNotActive, ahk_class Notepad
-        HideTrayTip()
-        TrayTip %TrayTip_title%, not active detected, , 33
+
+    ; WinWaitActive, ahk_class Notepad
+    ;     HideTrayTip()
+    ;     TrayTip %TrayTip_title%, active detected, , 33
+    ; WinWaitNotActive, ahk_class Notepad
+    ;     HideTrayTip()
+    ;     TrayTip %TrayTip_title%, not active detected, , 33
     
 
 ;数据文件未生成时，先进行数据文件生成
@@ -47,82 +49,76 @@ if not %data_generated%
 {
     tooltip_x := A_ScreenWidth * tooltip_prop_x
     tooltip_y := A_ScreenHeight * tooltip_prop_y
+
     HideTrayTip()
     TrayTip %TrayTip_title%, Waiting for running, , 1
-    ; WinWait, ahk_class Notepad
-    ;     TrayTip %TrayTip_title%, running detected
-    ; WinWaitActive, ahk_class Notepad
-    ;     TrayTip %TrayTip_title%, active detected
-    ; WinWaitNotActive, ahk_class Notepad
-    ;     TrayTip %TrayTip_title%, not active detected
-    ; IfWinActive, ahk_class Notepad
-    ; Loop
+    WinWait, ahk_class Notepad
+    HideTrayTip()
+    TrayTip %TrayTip_title%, running detected, , 1
+    ; if (WinActive("ahk_class Martial Kindom"))
     ; {
-    ;     if A_Index > 25
-    ;         break  ; Terminate the loop
-    ;     if A_Index < 20
-    ;         continue ; Skip the below and start a new iteration
-    ;     MsgBox, A_Index = %A_Index% ; This will display only the numbers 20 through 25
+    ;     MsgBox, activenow
     ; }
-    IfWinActive, ahk_class Notepad
-        ToolTip, config..., tooltip_x, tooltip_y, 20
-        return
-    IfWinNotActive, ahk_class Notepad
-        ToolTip
-        TrayTip #1, This is TrayTip #1
-        return
+    if (WinActive("ahk_class Notepad"))
+    {
+        MsgBox, act
+    }
+    if (!WinActive("ahk_class Notepad"))
+    {
+        MsgBox, notAct
+    }
 }
 array := {ten: 10, twenty: 20, thirty: 30}
 relative_positions := {"tooltip_main": [tooltip_prop_x, tooltip_prop_y]
     ,"tmp1":    [.2, .3]
     ,"tmp2":    [.5, .8]}
 tmp := relative_positions["tmp2"][2]
-MsgBox %tmp%
+; MsgBox %tmp%
 
 ;计算所有位置
 
 ; MsgBox, %tooltip_key%, %tooltip_x%, %tooltip_y%
 
-Hotkey, %tooltip_key%, func
+; Hotkey, %tooltip_key%, func
 
-func:
-    KeyWait %tooltip_key%, D
-    ToolTip, altdownnow, tooltip_x, tooltip_y, 20
-    ; ToolTip, altdownnow, A_ScreenWidth/2, A_ScreenHeight/2, 1
-    SetTimer detect_key_press, 0
-    KeyWait %tooltip_key%
-    SetTimer detect_key_press, off
-    ToolTip,,,, 20
-    ToolTip,,,, 1
-    return
+; func:
+;     KeyWait %tooltip_key%, D
+;     ToolTip, altdownnow, tooltip_x, tooltip_y, 20
+;     ; ToolTip, altdownnow, A_ScreenWidth/2, A_ScreenHeight/2, 1
+;     SetTimer detect_key_press, 0
+;     KeyWait %tooltip_key%
+;     SetTimer detect_key_press, off
+;     ToolTip,,,, 20
+;     ToolTip,,,, 1
+;     return
 
 
-detect_key_press:
-    If GetKeyState(1, "P")
-    {
-        SetTimer detect_key_press, off
-        ImageSearch, OutputVarX, OutputVarY, 0, 0, 2000, 2000, .\Images\m1.png
-        if ErrorLevel   ; i.e. it's not blank or zero.
-            MsgBox, an error occur, level %ErrorLevel%
-        If (OutputVarX = "")
-        {
-            MsgBox NF, %A_ScreenWidth%, %A_ScreenHeight%
-        }
-        Else
-        {
-            MouseMove, OutputVarX, OutputVarY
-            MsgBox %OutputVarX%,%OutputVarY%
-        }
-        return
-    }
-    If GetKeyState(2, "P")
-    {
-        SetTimer detect_key_press, off
-        MouseMove, 500, 500
-        MsgBox 2 pressed
-        return
-    }
-return
+; detect_key_press:
+;     If GetKeyState(1, "P")
+;     {
+;         SetTimer detect_key_press, off
+;         ImageSearch, OutputVarX, OutputVarY, 0, 0, 2000, 2000, .\Images\m1.png
+;         if ErrorLevel   ; i.e. it's not blank or zero.
+;             MsgBox, an error occur, level %ErrorLevel%
+;         If (OutputVarX = "")
+;         {
+;             MsgBox NF, %A_ScreenWidth%, %A_ScreenHeight%
+;         }
+;         Else
+;         {
+;             MouseMove, OutputVarX, OutputVarY
+;             MsgBox %OutputVarX%,%OutputVarY%
+;         }
+;         return
+;     }
+;     If GetKeyState(2, "P")
+;     {
+;         SetTimer detect_key_press, off
+;         MouseMove, 500, 500
+;         MsgBox 2 pressed
+;         return
+;     }
+; return
 
 ; ~LAlt::
 ; ToolTip, altdownnow, A_ScreenWidth, A_ScreenHeight
@@ -172,10 +168,42 @@ return
 ;     MsgBox, %b%
 ; }
 
+
+;脚本部分↑
+;====================================================
+;====================================================
+;====================================================
+;====================================================
+;====================================================
+;====================================================
+;====================================================
+;快捷键部分↓
+
+current_mode := 1
+
+;按住右键进行模式选择
+~*RButton::
+ToolTip, 
+(
+im
+fs
+dfsf
+dsaf
+), 0, 0, 19
+Loop
+{
+    Sleep, 10
+    if !GetKeyState("RButton", "P")  ; The key has been released, so break out of the loop.
+        break
+    ; ... insert here any other actions you want repeated.
+}
+ToolTip, , 0, 0, 19
+return
+
 ;Ctrl+Alt+Shift+s 进行设置
 ^!+s::
 MsgBox, setting
 return
 
-
+;退出键，debug用
 ^!+[::ExitApp
