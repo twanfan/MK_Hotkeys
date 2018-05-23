@@ -52,21 +52,21 @@ if not %data_generated%
 
     HideTrayTip()
     TrayTip %TrayTip_title%, Waiting for running, , 1
-    WinWait, ahk_class Notepad
+    ; WinWait, ahk_class Notepad
     HideTrayTip()
     TrayTip %TrayTip_title%, running detected, , 1
     ; if (WinActive("ahk_class Martial Kindom"))
     ; {
     ;     MsgBox, activenow
     ; }
-    if (WinActive("ahk_class Notepad"))
-    {
-        MsgBox, act
-    }
-    if (!WinActive("ahk_class Notepad"))
-    {
-        MsgBox, notAct
-    }
+    ; if (WinActive("ahk_class Notepad"))
+    ; {
+    ;     MsgBox, act
+    ; }
+    ; if (!WinActive("ahk_class Notepad"))
+    ; {
+    ;     MsgBox, notAct
+    ; }
 }
 array := {ten: 10, twenty: 20, thirty: 30}
 relative_positions := {"tooltip_main": [tooltip_prop_x, tooltip_prop_y]
@@ -179,10 +179,18 @@ tmp := relative_positions["tmp2"][2]
 ;====================================================
 ;快捷键部分↓
 
-current_mode := 1
 
-;按住右键进行模式选择
-~*RButton::
+
+current_mode := "main"
+
+show_tips(mode:="main")
+{
+    ToolTip, %mode%, 200, 200, 18
+    return
+}
+
+;按住中键进行模式选择
+~*MButton::
 ToolTip, 
 (
 im
@@ -190,14 +198,17 @@ fs
 dfsf
 dsaf
 ), 0, 0, 19
+
+show_tips(current_mode)
 Loop
 {
     Sleep, 10
-    if !GetKeyState("RButton", "P")  ; The key has been released, so break out of the loop.
+    if !GetKeyState("MButton", "P")  ; The key has been released, so break out of the loop.
         break
     ; ... insert here any other actions you want repeated.
 }
 ToolTip, , 0, 0, 19
+ToolTip, , 0, 0, 18
 return
 
 ;Ctrl+Alt+Shift+s 进行设置
