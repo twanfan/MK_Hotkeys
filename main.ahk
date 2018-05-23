@@ -10,22 +10,33 @@ CoordMode Mouse
 ;设置ToolTip全屏进行
 CoordMode ToolTip
 
-
-
-
 ;从配置文件读取
-IniRead, OutputVar, .\Config.ini, KeyConfig, function_key
+IniRead, tooltip_key, .\Config.ini, KeyConfig, tooltip_key
+IniRead, tooltip_prop_x, .\Config.ini, PosConfig, tooltip_prop_x
+IniRead, tooltip_prop_y, .\Config.ini, PosConfig, tooltip_prop_y
 
-function_key := OutputVar
 
-Hotkey, %function_key%, func
+
+array := {ten: 10, twenty: 20, thirty: 30}
+relative_positions := {"tooltip_main": [tooltip_prop_x, tooltip_prop_y]
+    ,"tmp1":    [.2, .3]
+    ,"tmp2":    [.5, .8]}
+tmp := relative_positions["tmp2"][2]
+MsgBox %tmp%
+
+;计算所有位置
+tooltip_x := A_ScreenWidth * tooltip_prop_x
+tooltip_y := A_ScreenHeight * tooltip_prop_y
+; MsgBox, %tooltip_key%, %tooltip_x%, %tooltip_y%
+
+Hotkey, %tooltip_key%, func
 
 func:
-    KeyWait %function_key%, D
-    ToolTip, altdownnow, 0, 0, 20
+    KeyWait %tooltip_key%, D
+    ToolTip, altdownnow, tooltip_x, tooltip_y, 20
     ; ToolTip, altdownnow, A_ScreenWidth/2, A_ScreenHeight/2, 1
     SetTimer detect_key_press, 0
-    KeyWait %function_key%
+    KeyWait %tooltip_key%
     SetTimer detect_key_press, off
     ToolTip,,,, 20
     ToolTip,,,, 1
@@ -91,7 +102,7 @@ return
 ; RemoveToolTip:
 ; SetTimer, RemoveToolTip, Off
 ; ToolTip
-; ; 222222 2
+; ;
 ; ExitApp
 
 
@@ -107,7 +118,9 @@ return
 ;     MsgBox, %b%
 ; }
 
-
+;Ctrl+Alt+Shift+s 进行设置
+^!+s::
+MsgBox, setting
 
 
 ^!+[::
