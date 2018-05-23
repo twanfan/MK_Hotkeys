@@ -25,13 +25,10 @@ ToolTip, script running..., 0, 0, 19
 
     WinWait, ahk_class Notepad
         TrayTip %TrayTip_title%, running detected
-        return
     WinWaitActive, ahk_class Notepad
         TrayTip %TrayTip_title%, active detected
-        return
     WinWaitNotActive, ahk_class Notepad
         TrayTip %TrayTip_title%, not active detected
-        return
     
 
 ;数据文件未生成时，先进行数据文件生成
