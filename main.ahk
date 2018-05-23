@@ -22,13 +22,24 @@ IniRead, data_generated, .\Config.ini, Others, data_generated
 ;debug
 ToolTip, script running..., 0, 0, 19
 
+HideTrayTip() {
+    TrayTip  ; Attempt to hide it the normal way.
+    if SubStr(A_OSVersion,1,3) = "10." {
+        Menu Tray, NoIcon
+        Sleep 200  ; It may be necessary to adjust this sleep.
+        Menu Tray, Icon
+    }
+}
 
     WinWait, ahk_class Notepad
-        TrayTip %TrayTip_title%, running detected
+        HideTrayTip()
+        TrayTip %TrayTip_title%, running detected, , 33
     WinWaitActive, ahk_class Notepad
-        TrayTip %TrayTip_title%, active detected
+        HideTrayTip()
+        TrayTip %TrayTip_title%, active detected, , 33
     WinWaitNotActive, ahk_class Notepad
-        TrayTip %TrayTip_title%, not active detected
+        HideTrayTip()
+        TrayTip %TrayTip_title%, not active detected, , 33
     
 
 ;数据文件未生成时，先进行数据文件生成
@@ -36,7 +47,8 @@ if not %data_generated%
 {
     tooltip_x := A_ScreenWidth * tooltip_prop_x
     tooltip_y := A_ScreenHeight * tooltip_prop_y
-    TrayTip %TrayTip_title%, Waiting for running
+    HideTrayTip()
+    TrayTip %TrayTip_title%, Waiting for running, , 1
     ; WinWait, ahk_class Notepad
     ;     TrayTip %TrayTip_title%, running detected
     ; WinWaitActive, ahk_class Notepad
@@ -163,7 +175,7 @@ return
 ;Ctrl+Alt+Shift+s 进行设置
 ^!+s::
 MsgBox, setting
+return
 
 
-^!+[::
-ExitApp
+^!+[::ExitApp
