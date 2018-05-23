@@ -10,13 +10,59 @@ CoordMode Mouse
 ;设置ToolTip全屏进行
 CoordMode ToolTip
 
+TrayTip_title := "提示"
+
+
 ;从配置文件读取
-IniRead, tooltip_key, .\Config.ini, KeyConfig, tooltip_key
-IniRead, tooltip_prop_x, .\Config.ini, PosConfig, tooltip_prop_x
-IniRead, tooltip_prop_y, .\Config.ini, PosConfig, tooltip_prop_y
+IniRead, tooltip_key, .\Config.ini, Key, tooltip_key
+IniRead, tooltip_prop_x, .\Config.ini, Position, tooltip_prop_x
+IniRead, tooltip_prop_y, .\Config.ini, Position, tooltip_prop_y
+IniRead, data_generated, .\Config.ini, Others, data_generated
+
+;debug
+ToolTip, script running..., 0, 0, 19
 
 
+    WinWait, ahk_class Notepad
+        TrayTip %TrayTip_title%, running detected
+        return
+    WinWaitActive, ahk_class Notepad
+        TrayTip %TrayTip_title%, active detected
+        return
+    WinWaitNotActive, ahk_class Notepad
+        TrayTip %TrayTip_title%, not active detected
+        return
+    
 
+;数据文件未生成时，先进行数据文件生成
+if not %data_generated%
+{
+    tooltip_x := A_ScreenWidth * tooltip_prop_x
+    tooltip_y := A_ScreenHeight * tooltip_prop_y
+    TrayTip %TrayTip_title%, Waiting for running
+    ; WinWait, ahk_class Notepad
+    ;     TrayTip %TrayTip_title%, running detected
+    ; WinWaitActive, ahk_class Notepad
+    ;     TrayTip %TrayTip_title%, active detected
+    ; WinWaitNotActive, ahk_class Notepad
+    ;     TrayTip %TrayTip_title%, not active detected
+    ; IfWinActive, ahk_class Notepad
+    ; Loop
+    ; {
+    ;     if A_Index > 25
+    ;         break  ; Terminate the loop
+    ;     if A_Index < 20
+    ;         continue ; Skip the below and start a new iteration
+    ;     MsgBox, A_Index = %A_Index% ; This will display only the numbers 20 through 25
+    ; }
+    IfWinActive, ahk_class Notepad
+        ToolTip, config..., tooltip_x, tooltip_y, 20
+        return
+    IfWinNotActive, ahk_class Notepad
+        ToolTip
+        TrayTip #1, This is TrayTip #1
+        return
+}
 array := {ten: 10, twenty: 20, thirty: 30}
 relative_positions := {"tooltip_main": [tooltip_prop_x, tooltip_prop_y]
     ,"tmp1":    [.2, .3]
@@ -25,8 +71,7 @@ tmp := relative_positions["tmp2"][2]
 MsgBox %tmp%
 
 ;计算所有位置
-tooltip_x := A_ScreenWidth * tooltip_prop_x
-tooltip_y := A_ScreenHeight * tooltip_prop_y
+
 ; MsgBox, %tooltip_key%, %tooltip_x%, %tooltip_y%
 
 Hotkey, %tooltip_key%, func
