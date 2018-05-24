@@ -4,7 +4,7 @@ SendMode Input  ; Recommended for new scripts due to its superior speed and reli
 SetWorkingDir %A_ScriptDir%  ; Ensures a consistent starting directory.
 
 ;debug
-ToolTip, script running...%main_1%, 0, 0, 19
+ToolTip, script running..., 0, 0, 19
 
 ;设置ImageSearch全屏进行
 CoordMode Pixel
@@ -15,8 +15,9 @@ CoordMode ToolTip
 
 
 ;定义程序窗口名称
+; SetTitleMatchMode, RegEx
+; win_title := "Martial Kingdoms"
 win_title := "ahk_class Notepad"
-; win_title := "ahk_class MK"
 
 
 ;检测程序运行情况并显示通知
@@ -234,6 +235,8 @@ tmp := relative_positions["tmp2"][2]
 ; }
 
 
+
+
 ;脚本部分↑
 ;========================================================================================
 ;========================================================================================
@@ -244,6 +247,26 @@ tmp := relative_positions["tmp2"][2]
 ;========================================================================================
 ;快捷键部分↓
 
+
+tmp := [100, 100]
+move_click(target){
+    x := target[1]
+    y := target[2]
+    Send, {Click %x%, %y%}
+}
+
+
+Hotkey, IfWinActive, %win_title%
+Hotkey, +a, % move_click(tmp)
+Hotkey, +b, % move_click(tmp)
+
+
+
+; move_click(tmp)
+
+
+
+/*显示提示
 mode_points := []
 show_tips(mode)
 {
@@ -276,25 +299,28 @@ hide_tips()
 }
 
 
-
-
 ;快捷键仅在程序进行时启用
 #if WinActive(win_title)
 
-;按住中键？进行模式选择
-~*LShift::
+;按住中键？显示提示进行模式选择
+; ~*LShift::
+~*MButton::
 current_mode := mode_main.Clone()
 show_tips(current_mode)
 loop
 {
     Sleep, 10
-    if !GetKeyState("LShift", "P")
+    ; if !GetKeyState("LShift", "P")
+    if !GetKeyState("MButton", "P")
         break
 }
 hide_tips()
 return
 
 #if
+
+*/
+
 
 ;退出键，debug用
 ^!+[::ExitApp
