@@ -13,14 +13,21 @@ CoordMode Mouse
 ;设置ToolTip全屏进行
 CoordMode ToolTip
 
+
+;定义程序窗口名称
+win_title := "ahk_class Notepad"
+; win_title := "ahk_class MK"
+
+
 ;检测程序运行情况并显示通知
 on_start := True
 old_activity := False
 detect_active(){
     global on_start
     global old_activity
+    global win_title
     if (on_start){
-        old_activity := (WinActive("ahk_class Notepad") != 0)
+        old_activity := (WinActive(win_title) != 0)
         on_start := False
         if (old_activity){
             HideTrayTip()
@@ -31,7 +38,7 @@ detect_active(){
         }
         return
     }
-    current_activity := (WinActive("ahk_class Notepad") != 0)
+    current_activity := (WinActive(win_title) != 0)
     if (current_activity != old_activity){
         if (old_activity){
             old_activity := current_activity
@@ -45,15 +52,30 @@ detect_active(){
     }
     return
 }
+HideTrayTip() { ;清除托盘提示
+    TrayTip  ; Attempt to hide it the normal way.
+    if SubStr(A_OSVersion,1,3) = "10." {
+        Menu Tray, NoIcon
+        Sleep 200  ; It may be necessary to adjust this sleep.
+        Menu Tray, Icon
+    }
+}
 SetTimer, detect_active, 1000
 
-;从配置文件读取
+WinWait, %win_title%
+sleep, 500
+
+;从配置文件读取基本信息
 IniRead, tooltip_key, .\config.ini, Key, tooltip_key
 IniRead, tooltip_prop_x, .\config.ini, Position, tooltip_prop_x
 IniRead, tooltip_prop_y, .\config.ini, Position, tooltip_prop_y
-IniRead, data_generated, .\config.ini, Others, data_generated
+; IniRead, data_generated, .\config.ini, Others, data_generated
 
-;读取位置信息
+tooltip_x := A_ScreenWidth * tooltip_prop_x
+tooltip_y := A_ScreenHeight * tooltip_prop_y
+ToolTip, 快捷键辅助程序启动中..., tooltip_x, tooltip_y, 20
+
+;从配置文件读取位置信息
 IniRead, main_1, .\config.ini, Position, main_1
 IniRead, main_2, .\config.ini, Position, main_2
 IniRead, main_3, .\config.ini, Position, main_3
@@ -63,7 +85,8 @@ IniRead, sys_2, .\config.ini, Position, sys_2
 IniRead, sl_1, .\config.ini, Position, sl_1
 IniRead, sl_2, .\config.ini, Position, sl_2
 
-;根据原始位置信息，计算比例
+
+;根据原始位置信息及当前分辨率计算实际位置
 find_pos(pos_info){
     pos_lst := []
     info := StrSplit(pos_info, ",")
@@ -73,38 +96,47 @@ find_pos(pos_info){
     y2 := info[4]
     xic := info[6] - 1 ;x axis interval count
     yic := info[5] - 1 ;y axis interval count
-}
 
-WinWait, ahk_class Notepad
-HideTrayTip()
-TrayTip info, running detected, , 1
-
-;清除托盘提示
-HideTrayTip() {
-    TrayTip  ; Attempt to hide it the normal way.
-    if SubStr(A_OSVersion,1,3) = "10." {
-        Menu Tray, NoIcon
-        Sleep 200  ; It may be necessary to adjust this sleep.
-        Menu Tray, Icon
+    if (xic = 0)
+    {
+        xiv := 0 ;x axis interval value
     }
+    else xiv := (x2-x1)/xic
+    if (yic = 0)
+    {
+        yiv := 0 ;x axis interval value
+    }
+    else yiv := (y2-y1)/yic
+
+    count_x := 0
+    count_y := 0
+    xpc := xic + 1 ;x axis point count
+    ypc := yic + 1 ;y axis point count
+
+    loop %ypc%{
+        loop %xpc%{
+            abs_point := [(x1+count_x*xiv)/800*A_ScreenWidth, (y1+count_y*yiv)/600*A_ScreenHeight]
+            pos_lst.push(abs_point)
+            count_x += 1
+        }
+        count_y += 1
+    }
+    return pos_lst
 }
+abs_main_1 := find_pos(main_1)
+abs_main_2 := find_pos(main_2)
+abs_main_3 := find_pos(main_3)
+abs_main_4 := find_pos(main_4)
+abs_sys_1 := find_pos(sys_1)
+abs_sys_2 := find_pos(sys_2)
+abs_sl_1 := find_pos(sl_1)
+abs_sl_2 := find_pos(sl_2)
 
-tooltip_x := A_ScreenWidth * tooltip_prop_x
-tooltip_y := A_ScreenHeight * tooltip_prop_y
+mode_main := ["info_main", abs_main_1, abs_main_2, abs_main_3, abs_main_4]
+mode_sys := ["info_sys", abs_sys_1, abs_sys_2]
+mode_sl := ["info_sl", abs_sl_1, abs_sl_2]
 
-
-; if (WinActive("ahk_class Martial Kindom"))
-; {
-;     MsgBox, activenow
-; }
-; if (WinActive("ahk_class Notepad"))
-; {
-;     MsgBox, act
-; }
-; if (!WinActive("ahk_class Notepad"))
-; {
-;     MsgBox, notAct
-; }
+ToolTip, , , , 20
 
 array := {ten: 10, twenty: 20, thirty: 30}
 relative_positions := {"tooltip_main": [tooltip_prop_x, tooltip_prop_y]
@@ -127,24 +159,24 @@ tmp := relative_positions["tmp2"][2]
 
 
 ; detect_key_press:
-;     If GetKeyState(1, "P")
+;     if GetKeyState(1, "P")
 ;     {
 ;         SetTimer detect_key_press, off
 ;         ImageSearch, OutputVarX, OutputVarY, 0, 0, 2000, 2000, .\Images\m1.png
 ;         if ErrorLevel   ; i.e. it's not blank or zero.
 ;             MsgBox, an error occur, level %ErrorLevel%
-;         If (OutputVarX = "")
+;         if (OutputVarX = "")
 ;         {
 ;             MsgBox NF, %A_ScreenWidth%, %A_ScreenHeight%
 ;         }
-;         Else
+;         else
 ;         {
 ;             MouseMove, OutputVarX, OutputVarY
 ;             MsgBox %OutputVarX%,%OutputVarY%
 ;         }
 ;         return
 ;     }
-;     If GetKeyState(2, "P")
+;     if GetKeyState(2, "P")
 ;     {
 ;         SetTimer detect_key_press, off
 ;         MouseMove, 500, 500
@@ -192,11 +224,11 @@ tmp := relative_positions["tmp2"][2]
 ; SetTitleMatchMode, RegEx
 ; a = "a"
 ; b = "b"
-; If WinActive("ahk_class Chrome_WidgetWin_1") and WinActive(" - Google Chrome$")
+; if WinActive("ahk_class Chrome_WidgetWin_1") and WinActive(" - Google Chrome$")
 ; {
 ;     MsgBox, %a%
 ; }
-; Else
+; else
 ; {
 ;     MsgBox, %b%
 ; }
@@ -212,44 +244,57 @@ tmp := relative_positions["tmp2"][2]
 ;========================================================================================
 ;快捷键部分↓
 
-#IfWinActive ahk_class Notepad
-
-current_mode := "main"
-
-show_tips(mode:="main")
+mode_points := []
+show_tips(mode)
 {
-    ToolTip, %mode%, 200, 200, 18
+    global tooltip_x
+    global tooltip_y
+    global mode_points
+    mode_info := mode[1]
+    mode.RemoveAt(1)
+    mode_points :=[]
+    for k in mode{
+        mode_points.push(mode[k]*)
+    }
+    mode_len_points := mode_points.Length()
+    ;显示主要提示
+    ToolTip, %mode_info%, tooltip_x, tooltip_y, 20
+    ;显示此模式下所有提示
+    for k in mode_points{
+        ToolTip, 1, mode_points[k][1], mode_points[k][2], k
+    }
+    return
+}
+hide_tips()
+{
+    global mode_points
+    ToolTip, , , , 20
+    for k in mode_points{
+        ToolTip, , , , k
+    }
     return
 }
 
-;按住中键进行模式选择
-~*LShift::
-ToolTip, 
-(
-im
-fs
-dfsf
-dsaf
-), 0, 0, 19
 
+
+
+;快捷键仅在程序进行时启用
+#if WinActive(win_title)
+
+;按住中键？进行模式选择
+~*LShift::
+current_mode := mode_main.Clone()
 show_tips(current_mode)
-Loop
+loop
 {
     Sleep, 10
-    if !GetKeyState("LShift", "P")  ; The key has been released, so break out of the loop.
+    if !GetKeyState("LShift", "P")
         break
-    ; ... insert here any other actions you want repeated.
 }
-ToolTip, , 0, 0, 19
-ToolTip, , 0, 0, 18
+hide_tips()
 return
 
-;Ctrl+Alt+Shift+s 进行设置
-^!+s::
-MsgBox, setting
-return
-
-#If
+#if
 
 ;退出键，debug用
 ^!+[::ExitApp
