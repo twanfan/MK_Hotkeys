@@ -77,73 +77,85 @@ tooltip_y := A_ScreenHeight * tooltip_prop_y
 ToolTip, 快捷键辅助程序启动中..., tooltip_x, tooltip_y, 20
 
 ;从配置文件读取位置信息
-IniRead, main_1, .\config.ini, Position, main_1
-IniRead, main_2, .\config.ini, Position, main_2
-IniRead, main_3, .\config.ini, Position, main_3
-IniRead, main_4, .\config.ini, Position, main_4
-IniRead, sys_1, .\config.ini, Position, sys_1
-IniRead, sys_2, .\config.ini, Position, sys_2
-IniRead, sl_1, .\config.ini, Position, sl_1
-IniRead, sl_2, .\config.ini, Position, sl_2
+IniRead, op_history, .\config.ini, Proportions, op_history
+IniRead, op_analyze, .\config.ini, Proportions, op_analyze
+IniRead, op_system, .\config.ini, Proportions, op_system
+IniRead, op_characters, .\config.ini, Proportions, op_characters
+IniRead, op_buildings, .\config.ini, Proportions, op_buildings
+IniRead, op_market, .\config.ini, Proportions, op_market
+IniRead, op_move, .\config.ini, Proportions, op_move
+IniRead, op_attack, .\config.ini, Proportions, op_attack
+IniRead, op_scout, .\config.ini, Proportions, op_scout
+IniRead, op_negotiate, .\config.ini, Proportions, op_negotiate
+IniRead, op_info, .\config.ini, Proportions, op_info
+IniRead, op_assign, .\config.ini, Proportions, op_assign
+IniRead, op_incident, .\config.ini, Proportions, op_incident
+IniRead, sys_save, .\config.ini, Proportions, sys_save
+IniRead, sys_load, .\config.ini, Proportions, sys_load
+IniRead, sys_resume, .\config.ini, Proportions, sys_resume
+IniRead, sys_exit, .\config.ini, Proportions, sys_exit
+IniRead, sys_speed1, .\config.ini, Proportions, sys_speed1
+IniRead, sys_speed5, .\config.ini, Proportions, sys_speed5
+IniRead, sys_speed0, .\config.ini, Proportions, sys_speed0
+IniRead, sys_exit_ok, .\config.ini, Proportions, sys_exit_ok
+IniRead, sys_exit_cancel, .\config.ini, Proportions, sys_exit_cancel
+IniRead, sl_ok, .\config.ini, Proportions, sl_ok
+IniRead, sl_cancel, .\config.ini, Proportions, sl_cancel
+IniRead, sl_slot, .\config.ini, Proportions, sl_slot
 
 
-;根据原始位置信息及当前分辨率计算实际位置
+;根据位置比例信息及当前分辨率计算实际位置
 find_pos(pos_info){
-    pos_lst := []
     info := StrSplit(pos_info, ",")
-    x1 := info[1]
-    y1 := info[2]
-    x2 := info[3]
-    y2 := info[4]
-    xic := info[6] - 1 ;x axis interval count
-    yic := info[5] - 1 ;y axis interval count
-
-    if (xic = 0)
-    {
-        xiv := 0 ;x axis interval value
-    }
-    else xiv := (x2-x1)/xic
-    if (yic = 0)
-    {
-        yiv := 0 ;x axis interval value
-    }
-    else yiv := (y2-y1)/yic
-
-    count_x := 0
-    count_y := 0
-    xpc := xic + 1 ;x axis point count
-    ypc := yic + 1 ;y axis point count
-
-    loop %ypc%{
-        loop %xpc%{
-            abs_point := [(x1+count_x*xiv)/800*A_ScreenWidth, (y1+count_y*yiv)/600*A_ScreenHeight]
-            pos_lst.push(abs_point)
-            count_x += 1
-        }
-        count_y += 1
-    }
-    return pos_lst
+    x := info[1] * A_ScreenWidth
+    y := info[2] * A_ScreenHeight
+    return [x, y]
 }
-abs_main_1 := find_pos(main_1)
-abs_main_2 := find_pos(main_2)
-abs_main_3 := find_pos(main_3)
-abs_main_4 := find_pos(main_4)
-abs_sys_1 := find_pos(sys_1)
-abs_sys_2 := find_pos(sys_2)
-abs_sl_1 := find_pos(sl_1)
-abs_sl_2 := find_pos(sl_2)
-
-mode_main := ["info_main", abs_main_1, abs_main_2, abs_main_3, abs_main_4]
-mode_sys := ["info_sys", abs_sys_1, abs_sys_2]
-mode_sl := ["info_sl", abs_sl_1, abs_sl_2]
+abs_op_history := find_pos(op_history)
+abs_op_analyze := find_pos(op_analyze)
+abs_op_system := find_pos(op_system)
+abs_op_characters := find_pos(op_characters)
+abs_op_buildings := find_pos(op_buildings)
+abs_op_market := find_pos(op_market)
+abs_op_move := find_pos(op_move)
+abs_op_attack := find_pos(op_attack)
+abs_op_scout := find_pos(op_scout)
+abs_op_negotiate := find_pos(op_negotiate)
+abs_op_info := find_pos(op_info)
+abs_op_assign := find_pos(op_assign)
+abs_op_incident := find_pos(op_incident)
+abs_sys_save := find_pos(sys_save)
+abs_sys_load := find_pos(sys_load)
+abs_sys_resume := find_pos(sys_resume)
+abs_sys_exit := find_pos(sys_exit)
+abs_sys_speed1 := find_pos(sys_speed1)
+abs_sys_speed5 := find_pos(sys_speed5)
+abs_sys_speed0 := find_pos(sys_speed0)
+abs_sys_exit_ok := find_pos(sys_exit_ok)
+abs_sys_exit_cancel := find_pos(sys_exit_cancel)
+abs_sl_ok := find_pos(sl_ok)
+abs_sl_cancel := find_pos(sl_cancel)
+abs_sl_slot := find_pos(sl_slot)
 
 ToolTip, , , , 20
 
-array := {ten: 10, twenty: 20, thirty: 30}
-relative_positions := {"tooltip_main": [tooltip_prop_x, tooltip_prop_y]
-    ,"tmp1":    [.2, .3]
-    ,"tmp2":    [.5, .8]}
-tmp := relative_positions["tmp2"][2]
+to_click(abs_pos){
+    MouseClick, , % abs_pos[1], % abs_pos[2], , 0
+}
+
+Hotkey, h, % to_click(abs_op_history)
+
+; mode_main := ["info_main", abs_main_1, abs_main_2, abs_main_3, abs_main_4]
+; mode_sys := ["info_sys", abs_sys_1, abs_sys_2]
+; mode_sl := ["info_sl", abs_sl_1, abs_sl_2]
+
+
+
+; array := {ten: 10, twenty: 20, thirty: 30}
+; relative_positions := {"tooltip_main": [tooltip_prop_x, tooltip_prop_y]
+;     ,"tmp1":    [.2, .3]
+;     ,"tmp2":    [.5, .8]}
+; tmp := relative_positions["tmp2"][2]
 ; MsgBox %tmp%
 
 
@@ -248,17 +260,17 @@ tmp := relative_positions["tmp2"][2]
 ;快捷键部分↓
 
 
-tmp := [100, 100]
-move_click(target){
-    x := target[1]
-    y := target[2]
-    Send, {Click %x%, %y%}
-}
+; tmp := [100, 100]
+; move_click(target){
+;     x := target[1]
+;     y := target[2]
+;     Send, {Click %x%, %y%}
+; }
 
 
-Hotkey, IfWinActive, %win_title%
-Hotkey, +a, % move_click(tmp)
-Hotkey, +b, % move_click(tmp)
+; Hotkey, IfWinActive, %win_title%
+; Hotkey, +a, % move_click(tmp)
+; Hotkey, +b, % move_click(tmp)
 
 
 
