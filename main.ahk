@@ -22,8 +22,31 @@ IniRead, tooltip_prop_x, .\config.ini, Position, tooltip_prop_x
 IniRead, tooltip_prop_y, .\config.ini, Position, tooltip_prop_y
 IniRead, data_generated, .\config.ini, Others, data_generated
 
+;读取位置信息
+IniRead, main_1, .\config.ini, Position, main_1
+IniRead, main_2, .\config.ini, Position, main_2
+IniRead, main_3, .\config.ini, Position, main_3
+IniRead, main_4, .\config.ini, Position, main_4
+IniRead, sys_1, .\config.ini, Position, sys_1
+IniRead, sys_2, .\config.ini, Position, sys_2
+IniRead, sl_1, .\config.ini, Position, sl_1
+IniRead, sl_2, .\config.ini, Position, sl_2
+
+;根据原始位置信息，结合分辨率计算实际位置
+find_pos(pos_info){
+    pos_lst := []
+    info := StrSplit(pos_info, ",")
+    x1 := info[1]
+    y1 := info[2]
+    x2 := info[3]
+    y2 := info[4]
+    xic := info[6] - 1 ;x axis interval count
+    yic := info[5] - 1 ;y axis interval count
+}
+
+
 ;debug
-ToolTip, script running..., 0, 0, 19
+ToolTip, script running...%main_1%, 0, 0, 19
 
 ;清除托盘提示
 HideTrayTip() {
@@ -170,16 +193,16 @@ tmp := relative_positions["tmp2"][2]
 
 
 ;脚本部分↑
-;====================================================
-;====================================================
-;====================================================
-;====================================================
-;====================================================
-;====================================================
-;====================================================
+;========================================================================================
+;========================================================================================
+;========================================================================================
+;========================================================================================
+;========================================================================================
+;========================================================================================
+;========================================================================================
 ;快捷键部分↓
 
-
+#IfWinActive ahk_class Notepad
 
 current_mode := "main"
 
@@ -190,7 +213,7 @@ show_tips(mode:="main")
 }
 
 ;按住中键进行模式选择
-~*MButton::
+~*LShift::
 ToolTip, 
 (
 im
@@ -203,7 +226,7 @@ show_tips(current_mode)
 Loop
 {
     Sleep, 10
-    if !GetKeyState("MButton", "P")  ; The key has been released, so break out of the loop.
+    if !GetKeyState("LShift", "P")  ; The key has been released, so break out of the loop.
         break
     ; ... insert here any other actions you want repeated.
 }
@@ -215,6 +238,8 @@ return
 ^!+s::
 MsgBox, setting
 return
+
+#If
 
 ;退出键，debug用
 ^!+[::ExitApp

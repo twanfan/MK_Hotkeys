@@ -11,7 +11,7 @@ CoordMode ToolTip
 ^!z::
 MouseGetPos, xpos, ypos
 ToolTip, %xpos% `, %ypos%, 0, 0
-Clipboard := xpos "`n" ypos
+Clipboard = %xpos%%A_Tab%%ypos%
 Return
 
 ^!+[::ExitApp
