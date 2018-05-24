@@ -143,7 +143,9 @@ to_click(abs_pos){
     MouseClick, , % abs_pos[1], % abs_pos[2], , 0
 }
 
-Hotkey, h, % to_click(abs_op_history)
+
+Hotkey, IfWinActive, %win_title%
+Hotkey, *h, % to_click(abs_op_history)
 
 ; mode_main := ["info_main", abs_main_1, abs_main_2, abs_main_3, abs_main_4]
 ; mode_sys := ["info_sys", abs_sys_1, abs_sys_2]
