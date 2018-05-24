@@ -3,6 +3,9 @@
 SendMode Input  ; Recommended for new scripts due to its superior speed and reliability.
 SetWorkingDir %A_ScriptDir%  ; Ensures a consistent starting directory.
 
+;debug
+ToolTip, script running...%main_1%, 0, 0, 19
+
 ;设置ImageSearch全屏进行
 CoordMode Pixel
 ;设置MouseMove全屏进行
@@ -10,11 +13,39 @@ CoordMode Mouse
 ;设置ToolTip全屏进行
 CoordMode ToolTip
 
-TrayTip_title := "提示"
-
-
-
-
+;检测程序运行情况并显示通知
+on_start := True
+old_activity := False
+detect_active(){
+    global on_start
+    global old_activity
+    if (on_start){
+        old_activity := (WinActive("ahk_class Notepad") != 0)
+        on_start := False
+        if (old_activity){
+            HideTrayTip()
+            TrayTip info, detected running1, , 1
+        }else{
+            HideTrayTip()
+            TrayTip info, Waiting for running2, , 1
+        }
+        return
+    }
+    current_activity := (WinActive("ahk_class Notepad") != 0)
+    if (current_activity != old_activity){
+        if (old_activity){
+            old_activity := current_activity
+            HideTrayTip()
+            TrayTip info, Waiting for running3, , 1
+        }else{
+            old_activity := current_activity
+            HideTrayTip()
+            TrayTip info, detected running4, , 1
+        }
+    }
+    return
+}
+SetTimer, detect_active, 1000
 
 ;从配置文件读取
 IniRead, tooltip_key, .\config.ini, Key, tooltip_key
@@ -32,7 +63,7 @@ IniRead, sys_2, .\config.ini, Position, sys_2
 IniRead, sl_1, .\config.ini, Position, sl_1
 IniRead, sl_2, .\config.ini, Position, sl_2
 
-;根据原始位置信息，结合分辨率计算实际位置
+;根据原始位置信息，计算比例
 find_pos(pos_info){
     pos_lst := []
     info := StrSplit(pos_info, ",")
@@ -44,9 +75,9 @@ find_pos(pos_info){
     yic := info[5] - 1 ;y axis interval count
 }
 
-
-;debug
-ToolTip, script running...%main_1%, 0, 0, 19
+WinWait, ahk_class Notepad
+HideTrayTip()
+TrayTip info, running detected, , 1
 
 ;清除托盘提示
 HideTrayTip() {
@@ -58,39 +89,23 @@ HideTrayTip() {
     }
 }
 
+tooltip_x := A_ScreenWidth * tooltip_prop_x
+tooltip_y := A_ScreenHeight * tooltip_prop_y
 
-    ; WinWaitActive, ahk_class Notepad
-    ;     HideTrayTip()
-    ;     TrayTip %TrayTip_title%, active detected, , 33
-    ; WinWaitNotActive, ahk_class Notepad
-    ;     HideTrayTip()
-    ;     TrayTip %TrayTip_title%, not active detected, , 33
-    
 
-;数据文件未生成时，先进行数据文件生成
-if not %data_generated%
-{
-    tooltip_x := A_ScreenWidth * tooltip_prop_x
-    tooltip_y := A_ScreenHeight * tooltip_prop_y
+; if (WinActive("ahk_class Martial Kindom"))
+; {
+;     MsgBox, activenow
+; }
+; if (WinActive("ahk_class Notepad"))
+; {
+;     MsgBox, act
+; }
+; if (!WinActive("ahk_class Notepad"))
+; {
+;     MsgBox, notAct
+; }
 
-    HideTrayTip()
-    TrayTip %TrayTip_title%, Waiting for running, , 1
-    ; WinWait, ahk_class Notepad
-    HideTrayTip()
-    TrayTip %TrayTip_title%, running detected, , 1
-    ; if (WinActive("ahk_class Martial Kindom"))
-    ; {
-    ;     MsgBox, activenow
-    ; }
-    ; if (WinActive("ahk_class Notepad"))
-    ; {
-    ;     MsgBox, act
-    ; }
-    ; if (!WinActive("ahk_class Notepad"))
-    ; {
-    ;     MsgBox, notAct
-    ; }
-}
 array := {ten: 10, twenty: 20, thirty: 30}
 relative_positions := {"tooltip_main": [tooltip_prop_x, tooltip_prop_y]
     ,"tmp1":    [.2, .3]
@@ -98,11 +113,6 @@ relative_positions := {"tooltip_main": [tooltip_prop_x, tooltip_prop_y]
 tmp := relative_positions["tmp2"][2]
 ; MsgBox %tmp%
 
-;计算所有位置
-
-; MsgBox, %tooltip_key%, %tooltip_x%, %tooltip_y%
-
-; Hotkey, %tooltip_key%, func
 
 ; func:
 ;     KeyWait %tooltip_key%, D
