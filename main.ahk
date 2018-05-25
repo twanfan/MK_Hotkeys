@@ -14,6 +14,8 @@ CoordMode Pixel
 CoordMode Mouse
 ;设置ToolTip全屏进行
 CoordMode ToolTip
+;鼠标速度设置为最快
+SetDefaultMouseSpeed, 0
 
 
 ;定义程序窗口名称
@@ -69,7 +71,8 @@ WinWait, %win_title%
 sleep, 500
 
 ;从配置文件读取基本信息
-IniRead, tooltip_key, .\config.ini, Keys, tooltip_key
+IniRead, k_tooltip, .\config.ini, Keys, k_tooltip
+hold_k_tooltip := "*"k_tooltip
 IniRead, tooltip_prop_x, .\config.ini, General, tooltip_prop_x
 IniRead, tooltip_prop_y, .\config.ini, General, tooltip_prop_y
 Iniread, if_pos_res, .\config.ini, General, mouse_position_restore
@@ -124,6 +127,8 @@ Iniread, k_op_info, .\config.ini, Keys, k_op_info
 Iniread, k_op_assign, .\config.ini, Keys, k_op_assign
 Iniread, k_op_incident, .\config.ini, Keys, k_op_incident
 
+Iniread, k_comb_max_speed, .\config.ini, Keys, k_comb_max_speed
+
 
 ;根据位置比例信息及当前分辨率计算实际位置
 find_pos(pos_info){
@@ -159,32 +164,87 @@ abs_sl_cancel := find_pos(sl_cancel)
 abs_sl_slot := find_pos(sl_slot)
 
 
-
-to_click(abs_pos, to_restore:=True){
-    MouseGetPos, old_x, old_y
-    MouseClick, , % abs_pos[1], % abs_pos[2], , 0
+mouse_position_stored := [0, 0]
+;进行单次鼠标点击（位置、是否更新位置信息、点击后是否还原位置）
+one_click(abs_pos, update_stored_position:=True, to_restore:=True){
+    global mouse_position_stored
+    if (update_stored_position){
+        MouseGetPos, x, y
+        mouse_position_stored := [x, y]
+    }
+    MouseClick, left, % abs_pos[1], % abs_pos[2]
     if (to_restore){
-        MouseMove %old_x%, %old_y%, 0
+        MouseMove % mouse_position_stored[1], % mouse_position_stored[2]
     }
     return
 }
+;进行多次鼠标点击（位置、是否还原）
+multi_clicks(abs_poss, to_restore:=True){
+    for k, v in abs_poss{
+        if (k=1){
+            one_click(v, True, False)
+        }else if (k=abs_poss.Length()){
+            one_click(v, False, to_restore)
+        }else{
+            one_click(v, False, False)
+        }
+    }
+    return
+}
+;定义多次点击进行的活动
+;最大速度
+comb_max_speed := [abs_op_system, abs_sys_speed5, abs_sys_resume]
+;最小速度
+comb_min_speed := [abs_op_system, abs_sys_speed1, abs_sys_speed0, abs_sys_resume]
+
+
+
+;显示提示
+show_tips(info){
+    global tooltip_x
+    global tooltip_y
+    global k_tooltip
+    ToolTip, %info%, tooltip_x, tooltip_y, 20
+    loop
+    {
+        Sleep, 10
+        if !GetKeyState(k_tooltip, "P")
+            break
+    }
+    ToolTip, , , , 20
+    return
+}
+info_main =
+(
+显示提示: %k_tooltip%
+测试2
+测试3
+)
+info_to_show := info_main
 
 ;生成点击函数对象
-click_abs_op_history := Func("to_click").Bind(abs_op_history, if_pos_res)
-click_abs_op_analyze := Func("to_click").Bind(abs_op_analyze, if_pos_res)
-click_abs_op_system := Func("to_click").Bind(abs_op_system, if_pos_res)
-click_abs_op_characters := Func("to_click").Bind(abs_op_characters, if_pos_res)
-click_abs_op_buildings := Func("to_click").Bind(abs_op_buildings, if_pos_res)
-click_abs_op_market := Func("to_click").Bind(abs_op_market, if_pos_res)
-click_abs_op_move := Func("to_click").Bind(abs_op_move, if_pos_res)
-click_abs_op_attack := Func("to_click").Bind(abs_op_attack, if_pos_res)
-click_abs_op_scout := Func("to_click").Bind(abs_op_scout, if_pos_res)
-click_abs_op_negotiate := Func("to_click").Bind(abs_op_negotiate, if_pos_res)
-click_abs_op_info := Func("to_click").Bind(abs_op_info, if_pos_res)
-click_abs_op_assign := Func("to_click").Bind(abs_op_assign, if_pos_res)
-click_abs_op_incident := Func("to_click").Bind(abs_op_incident, if_pos_res)
-;绑定点击函数快捷键
+;一般快捷键
+click_abs_op_history := Func("one_click").Bind(abs_op_history, , if_pos_res)
+click_abs_op_analyze := Func("one_click").Bind(abs_op_analyze, , if_pos_res)
+click_abs_op_system := Func("one_click").Bind(abs_op_system, , if_pos_res)
+click_abs_op_characters := Func("one_click").Bind(abs_op_characters, , if_pos_res)
+click_abs_op_buildings := Func("one_click").Bind(abs_op_buildings, , if_pos_res)
+click_abs_op_market := Func("one_click").Bind(abs_op_market, , if_pos_res)
+click_abs_op_move := Func("one_click").Bind(abs_op_move, , if_pos_res)
+click_abs_op_attack := Func("one_click").Bind(abs_op_attack, , if_pos_res)
+click_abs_op_scout := Func("one_click").Bind(abs_op_scout, , if_pos_res)
+click_abs_op_negotiate := Func("one_click").Bind(abs_op_negotiate, , if_pos_res)
+click_abs_op_info := Func("one_click").Bind(abs_op_info, , if_pos_res)
+click_abs_op_assign := Func("one_click").Bind(abs_op_assign, , if_pos_res)
+click_abs_op_incident := Func("one_click").Bind(abs_op_incident, , if_pos_res)
+;合成快捷键
+click_comb_max_speed := Func("multi_clicks").Bind(comb_max_speed, if_pos_res)
+;显示提示
+show_tip_func := Func("show_tips").Bind(info_to_show)
+
+;绑定点击函数快捷键，仅在程序运行时启用
 Hotkey, IfWinActive, %win_title%
+;绑定一般快捷键
 Hotkey, %k_op_history%, % click_abs_op_history
 Hotkey, %k_op_analyze%, % click_abs_op_analyze
 Hotkey, %k_op_system%, % click_abs_op_system
@@ -198,6 +258,13 @@ Hotkey, %k_op_negotiate%, % click_abs_op_negotiate
 Hotkey, %k_op_info%, % click_abs_op_info
 Hotkey, %k_op_assign%, % click_abs_op_assign
 Hotkey, %k_op_incident%, % click_abs_op_incident
+;绑定合成快捷键
+Hotkey, %k_comb_max_speed%, % click_comb_max_speed
+;绑定提示
+Hotkey, %hold_k_tooltip%, % show_tip_func
+
+
+
 
 
 ToolTip, , , , 20
@@ -218,11 +285,11 @@ ToolTip, , , , 20
 
 
 ; func:
-;     KeyWait %tooltip_key%, D
+;     KeyWait %k_tooltip%, D
 ;     ToolTip, altdownnow, tooltip_x, tooltip_y, 20
 ;     ; ToolTip, altdownnow, A_ScreenWidth/2, A_ScreenHeight/2, 1
 ;     SetTimer detect_key_press, 0
-;     KeyWait %tooltip_key%
+;     KeyWait %k_tooltip%
 ;     SetTimer detect_key_press, off
 ;     ToolTip,,,, 20
 ;     ToolTip,,,, 1
