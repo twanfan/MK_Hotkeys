@@ -3,6 +3,8 @@
 SendMode Input  ; Recommended for new scripts due to its superior speed and reliability.
 SetWorkingDir %A_ScriptDir%  ; Ensures a consistent starting directory.
 
+#SingleInstance force
+
 ;debug
 ToolTip, script running..., 0, 0, 19
 
@@ -67,13 +69,17 @@ WinWait, %win_title%
 sleep, 500
 
 ;从配置文件读取基本信息
-IniRead, tooltip_key, .\config.ini, Key, tooltip_key
-IniRead, tooltip_prop_x, .\config.ini, Position, tooltip_prop_x
-IniRead, tooltip_prop_y, .\config.ini, Position, tooltip_prop_y
-; IniRead, data_generated, .\config.ini, Others, data_generated
+IniRead, tooltip_key, .\config.ini, Keys, tooltip_key
+IniRead, tooltip_prop_x, .\config.ini, General, tooltip_prop_x
+IniRead, tooltip_prop_y, .\config.ini, General, tooltip_prop_y
+Iniread, if_pos_res, .\config.ini, General, mouse_position_restore
 
+;计算主要提示显示位置
 tooltip_x := A_ScreenWidth * tooltip_prop_x
 tooltip_y := A_ScreenHeight * tooltip_prop_y
+;鼠标点击后是否回到原始位置
+
+
 ToolTip, 快捷键辅助程序启动中..., tooltip_x, tooltip_y, 20
 
 ;从配置文件读取位置信息
@@ -102,6 +108,21 @@ IniRead, sys_exit_cancel, .\config.ini, Proportions, sys_exit_cancel
 IniRead, sl_ok, .\config.ini, Proportions, sl_ok
 IniRead, sl_cancel, .\config.ini, Proportions, sl_cancel
 IniRead, sl_slot, .\config.ini, Proportions, sl_slot
+
+;从配置文件读取快捷键信息
+Iniread, k_op_history, .\config.ini, Keys, k_op_history
+Iniread, k_op_analyze, .\config.ini, Keys, k_op_analyze
+Iniread, k_op_system, .\config.ini, Keys, k_op_system
+Iniread, k_op_characters, .\config.ini, Keys, k_op_characters
+Iniread, k_op_buildings, .\config.ini, Keys, k_op_buildings
+Iniread, k_op_market, .\config.ini, Keys, k_op_market
+Iniread, k_op_move, .\config.ini, Keys, k_op_move
+Iniread, k_op_attack, .\config.ini, Keys, k_op_attack
+Iniread, k_op_scout, .\config.ini, Keys, k_op_scout
+Iniread, k_op_negotiate, .\config.ini, Keys, k_op_negotiate
+Iniread, k_op_info, .\config.ini, Keys, k_op_info
+Iniread, k_op_assign, .\config.ini, Keys, k_op_assign
+Iniread, k_op_incident, .\config.ini, Keys, k_op_incident
 
 
 ;根据位置比例信息及当前分辨率计算实际位置
@@ -137,15 +158,50 @@ abs_sl_ok := find_pos(sl_ok)
 abs_sl_cancel := find_pos(sl_cancel)
 abs_sl_slot := find_pos(sl_slot)
 
-ToolTip, , , , 20
 
-to_click(abs_pos){
+
+to_click(abs_pos, to_restore:=True){
+    MouseGetPos, old_x, old_y
     MouseClick, , % abs_pos[1], % abs_pos[2], , 0
+    if (to_restore){
+        MouseMove %old_x%, %old_y%, 0
+    }
+    return
 }
 
-
+;生成点击函数对象
+click_abs_op_history := Func("to_click").Bind(abs_op_history, if_pos_res)
+click_abs_op_analyze := Func("to_click").Bind(abs_op_analyze, if_pos_res)
+click_abs_op_system := Func("to_click").Bind(abs_op_system, if_pos_res)
+click_abs_op_characters := Func("to_click").Bind(abs_op_characters, if_pos_res)
+click_abs_op_buildings := Func("to_click").Bind(abs_op_buildings, if_pos_res)
+click_abs_op_market := Func("to_click").Bind(abs_op_market, if_pos_res)
+click_abs_op_move := Func("to_click").Bind(abs_op_move, if_pos_res)
+click_abs_op_attack := Func("to_click").Bind(abs_op_attack, if_pos_res)
+click_abs_op_scout := Func("to_click").Bind(abs_op_scout, if_pos_res)
+click_abs_op_negotiate := Func("to_click").Bind(abs_op_negotiate, if_pos_res)
+click_abs_op_info := Func("to_click").Bind(abs_op_info, if_pos_res)
+click_abs_op_assign := Func("to_click").Bind(abs_op_assign, if_pos_res)
+click_abs_op_incident := Func("to_click").Bind(abs_op_incident, if_pos_res)
+;绑定点击函数快捷键
 Hotkey, IfWinActive, %win_title%
-Hotkey, *h, % to_click(abs_op_history)
+Hotkey, %k_op_history%, % click_abs_op_history
+Hotkey, %k_op_analyze%, % click_abs_op_analyze
+Hotkey, %k_op_system%, % click_abs_op_system
+Hotkey, %k_op_characters%, % click_abs_op_characters
+Hotkey, %k_op_buildings%, % click_abs_op_buildings
+Hotkey, %k_op_market%, % click_abs_op_market
+Hotkey, %k_op_move%, % click_abs_op_move
+Hotkey, %k_op_attack%, % click_abs_op_attack
+Hotkey, %k_op_scout%, % click_abs_op_scout
+Hotkey, %k_op_negotiate%, % click_abs_op_negotiate
+Hotkey, %k_op_info%, % click_abs_op_info
+Hotkey, %k_op_assign%, % click_abs_op_assign
+Hotkey, %k_op_incident%, % click_abs_op_incident
+
+
+ToolTip, , , , 20
+
 
 ; mode_main := ["info_main", abs_main_1, abs_main_2, abs_main_3, abs_main_4]
 ; mode_sys := ["info_sys", abs_sys_1, abs_sys_2]
