@@ -5,8 +5,6 @@ SetWorkingDir %A_ScriptDir%  ; Ensures a consistent starting directory.
 
 #SingleInstance force
 
-;debug
-ToolTip, script running..., 0, 0, 19
 
 ;设置ImageSearch全屏进行
 CoordMode Pixel
@@ -17,11 +15,13 @@ CoordMode ToolTip
 ;鼠标速度设置为最快
 SetDefaultMouseSpeed, 0
 
+;debug
+; ToolTip, script running..., 0, 0, 19
 
 ;定义程序窗口名称
-; SetTitleMatchMode, RegEx
-; win_title := "Martial Kingdoms"
-win_title := "ahk_class Notepad"
+SetTitleMatchMode, RegEx
+win_title := "Martial Kingdoms"
+; win_title := "ahk_class Notepad"
 
 
 ;检测程序运行情况并显示通知
@@ -36,10 +36,10 @@ detect_active(){
         on_start := False
         if (old_activity){
             HideTrayTip()
-            TrayTip info, detected running1, , 1
+            TrayTip 霸图快捷键工具提示, 检测到天下霸图启动, , 1
         }else{
             HideTrayTip()
-            TrayTip info, Waiting for running2, , 1
+            TrayTip 霸图快捷键工具提示, 等待天下霸图启动, , 1
         }
         return
     }
@@ -48,11 +48,11 @@ detect_active(){
         if (old_activity){
             old_activity := current_activity
             HideTrayTip()
-            TrayTip info, Waiting for running3, , 1
+            TrayTip 霸图快捷键工具提示, 快捷键功能暂停, , 1
         }else{
             old_activity := current_activity
             HideTrayTip()
-            TrayTip info, detected running4, , 1
+            TrayTip 霸图快捷键工具提示, 快捷键功能启动, , 1
         }
     }
     return
@@ -128,6 +128,9 @@ Iniread, k_op_assign, .\config.ini, Keys, k_op_assign
 Iniread, k_op_incident, .\config.ini, Keys, k_op_incident
 
 Iniread, k_comb_max_speed, .\config.ini, Keys, k_comb_max_speed
+Iniread, k_comb_min_speed, .\config.ini, Keys, k_comb_min_speed
+Iniread, k_comb_quick_save, .\config.ini, Keys, k_comb_quick_save
+Iniread, k_comb_quick_load, .\config.ini, Keys, k_comb_quick_load
 
 
 ;根据位置比例信息及当前分辨率计算实际位置
@@ -172,13 +175,18 @@ one_click(abs_pos, update_stored_position:=True, to_restore:=True){
         MouseGetPos, x, y
         mouse_position_stored := [x, y]
     }
-    MouseClick, left, % abs_pos[1], % abs_pos[2]
+    MouseMove, % abs_pos[1], % abs_pos[2]
+    sleep 1
+    MouseClick
+    sleep 1
+    ; MouseClick, left, % abs_pos[1], % abs_pos[2]
+    ; sleep 20
     if (to_restore){
         MouseMove % mouse_position_stored[1], % mouse_position_stored[2]
     }
     return
 }
-;进行多次鼠标点击（位置、是否还原）
+; 进行多次鼠标点击（位置、是否还原）
 multi_clicks(abs_poss, to_restore:=True){
     for k, v in abs_poss{
         if (k=1){
@@ -188,14 +196,20 @@ multi_clicks(abs_poss, to_restore:=True){
         }else{
             one_click(v, False, False)
         }
+        ; sleep, 50
     }
     return
 }
 ;定义多次点击进行的活动
-;最大速度
+; 调整为最大速度
 comb_max_speed := [abs_op_system, abs_sys_speed5, abs_sys_resume]
-;最小速度
+; 调整为最小速度
 comb_min_speed := [abs_op_system, abs_sys_speed1, abs_sys_speed0, abs_sys_resume]
+; 快速保存
+comb_quick_save := [abs_op_system, abs_sys_save, abs_sl_slot, abs_sl_ok]
+; 快速读取
+comb_quick_load := [abs_op_system, abs_sys_load, abs_sl_slot, abs_sl_ok]
+
 
 
 
@@ -217,8 +231,22 @@ show_tips(info){
 info_main =
 (
 显示提示: %k_tooltip%
-测试2
-测试3
+历史: %k_op_history%
+分析: %k_op_analyze%
+系统: %k_op_system%
+人物: %k_op_characters%
+建筑: %k_op_buildings%
+交易: %k_op_market%
+移动: %k_op_move%
+出击: %k_op_attack%
+侦察: %k_op_scout%
+交涉: %k_op_negotiate%
+情报: %k_op_info%
+任命: %k_op_assign%
+调整为最大速度: %k_comb_max_speed%
+调整为最小速度: %k_comb_min_speed%
+快速保存: %k_comb_quick_save%
+快速读取: %k_comb_quick_load%
 )
 info_to_show := info_main
 
@@ -239,6 +267,10 @@ click_abs_op_assign := Func("one_click").Bind(abs_op_assign, , if_pos_res)
 click_abs_op_incident := Func("one_click").Bind(abs_op_incident, , if_pos_res)
 ;合成快捷键
 click_comb_max_speed := Func("multi_clicks").Bind(comb_max_speed, if_pos_res)
+click_comb_min_speed := Func("multi_clicks").Bind(comb_min_speed, if_pos_res)
+click_comb_quick_save := Func("multi_clicks").Bind(comb_quick_save, if_pos_res)
+click_comb_quick_load := Func("multi_clicks").Bind(comb_quick_load, if_pos_res)
+
 ;显示提示
 show_tip_func := Func("show_tips").Bind(info_to_show)
 
@@ -260,6 +292,10 @@ Hotkey, %k_op_assign%, % click_abs_op_assign
 Hotkey, %k_op_incident%, % click_abs_op_incident
 ;绑定合成快捷键
 Hotkey, %k_comb_max_speed%, % click_comb_max_speed
+Hotkey, %k_comb_min_speed%, % click_comb_min_speed
+Hotkey, %k_comb_quick_save%, % click_comb_quick_save
+Hotkey, %k_comb_quick_load%, % click_comb_quick_load
+
 ;绑定提示
 Hotkey, %hold_k_tooltip%, % show_tip_func
 
