@@ -67,21 +67,24 @@ HideTrayTip() { ;清除托盘提示
 }
 SetTimer, detect_active, 1000
 
-WinWait, %win_title%
-sleep, 500
 
 ;从配置文件读取基本信息
 IniRead, k_tooltip, .\config.ini, Keys, k_tooltip
 hold_k_tooltip := "*"k_tooltip
 IniRead, tooltip_prop_x, .\config.ini, General, tooltip_prop_x
 IniRead, tooltip_prop_y, .\config.ini, General, tooltip_prop_y
-Iniread, if_pos_res, .\config.ini, General, mouse_position_restore
 
 ;计算主要提示显示位置
-tooltip_x := A_ScreenWidth * tooltip_prop_x
-tooltip_y := A_ScreenHeight * tooltip_prop_y
+tooltip_prop_xy = %tooltip_prop_x%,%tooltip_prop_y%
+tooltip_x := find_pos(tooltip_prop_xy)[1]
+tooltip_y := find_pos(tooltip_prop_xy)[2]
 ;鼠标点击后是否回到原始位置
+Iniread, if_pos_res, .\config.ini, General, mouse_position_restore
+;是否使用绝对
+Iniread, use_abs_pos, .\config.ini, General, use_abs_pos
 
+WinWait, %win_title%
+sleep, 500
 
 ToolTip, 快捷键辅助程序启动中..., tooltip_x, tooltip_y, 20
 
@@ -112,6 +115,23 @@ IniRead, sl_ok, .\config.ini, Proportions, sl_ok
 IniRead, sl_cancel, .\config.ini, Proportions, sl_cancel
 IniRead, sl_slot, .\config.ini, Proportions, sl_slot
 
+IniRead, sub_start_load, .\config.ini, Proportions, sub_start_load
+
+IniRead, back_op_history, .\config.ini, Proportions, back_op_history
+IniRead, back_op_analyze, .\config.ini, Proportions, back_op_analyze
+IniRead, back_op_characters, .\config.ini, Proportions, back_op_characters
+IniRead, back_op_buildings, .\config.ini, Proportions, back_op_buildings
+IniRead, back_op_market, .\config.ini, Proportions, back_op_market
+IniRead, back_op_move, .\config.ini, Proportions, back_op_move
+IniRead, back_op_attack, .\config.ini, Proportions, back_op_attack
+IniRead, back_op_scout, .\config.ini, Proportions, back_op_scout
+IniRead, back_op_negotiate, .\config.ini, Proportions, back_op_negotiate
+IniRead, back_op_info, .\config.ini, Proportions, back_op_info
+IniRead, back_op_assign, .\config.ini, Proportions, back_op_assign
+IniRead, back_op_incident, .\config.ini, Proportions, back_op_incident
+
+
+
 ;从配置文件读取快捷键信息
 Iniread, k_op_history, .\config.ini, Keys, k_op_history
 Iniread, k_op_analyze, .\config.ini, Keys, k_op_analyze
@@ -127,17 +147,36 @@ Iniread, k_op_info, .\config.ini, Keys, k_op_info
 Iniread, k_op_assign, .\config.ini, Keys, k_op_assign
 Iniread, k_op_incident, .\config.ini, Keys, k_op_incident
 
+Iniread, k_op_backs_origin, .\config.ini, Keys, k_op_backs_origin
+
 Iniread, k_comb_max_speed, .\config.ini, Keys, k_comb_max_speed
 Iniread, k_comb_min_speed, .\config.ini, Keys, k_comb_min_speed
 Iniread, k_comb_quick_save, .\config.ini, Keys, k_comb_quick_save
 Iniread, k_comb_quick_load, .\config.ini, Keys, k_comb_quick_load
 
+;按键字符转换为前缀
+key_to_prefix(key){
+    map := {"Shift":"+", "LShift":"<+", "RShift":">+", "Ctrl":"^", "LCtrl":"<^", "RCtrl":">^", "Alt":"!", "LAlt":"<!", "RAlt":">!"}
+    if (map.haskey(key)){
+        return map[key]
+    }else{
+        return key
+    }
+}
+k_op_backs := key_to_prefix(k_op_backs_origin)
+; MsgBox, %k_op_backs_origin%%k_op_backs%
 
 ;根据位置比例信息及当前分辨率计算实际位置
 find_pos(pos_info){
+    global use_abs_pos
     info := StrSplit(pos_info, ",")
-    x := info[1] * A_ScreenWidth
-    y := info[2] * A_ScreenHeight
+    if (use_abs_pos){
+        x := info[1] * 800
+        y := info[2] * 600
+    }else{
+        x := info[1] * A_ScreenWidth
+        y := info[2] * A_ScreenHeight
+    }
     return [x, y]
 }
 abs_op_history := find_pos(op_history)
@@ -165,6 +204,22 @@ abs_sys_exit_cancel := find_pos(sys_exit_cancel)
 abs_sl_ok := find_pos(sl_ok)
 abs_sl_cancel := find_pos(sl_cancel)
 abs_sl_slot := find_pos(sl_slot)
+
+abs_sub_start_load := find_pos(sub_start_load)
+
+abs_back_op_history := find_pos(back_op_history)
+abs_back_op_analyze := find_pos(back_op_analyze)
+abs_back_op_characters := find_pos(back_op_characters)
+abs_back_op_buildings := find_pos(back_op_buildings)
+abs_back_op_market := find_pos(back_op_market)
+abs_back_op_move := find_pos(back_op_move)
+abs_back_op_attack := find_pos(back_op_attack)
+abs_back_op_scout := find_pos(back_op_scout)
+abs_back_op_negotiate := find_pos(back_op_negotiate)
+abs_back_op_info := find_pos(back_op_info)
+abs_back_op_assign := find_pos(back_op_assign)
+abs_back_op_incident := find_pos(back_op_incident)
+
 
 
 mouse_position_stored := [0, 0]
@@ -208,7 +263,8 @@ comb_min_speed := [abs_op_system, abs_sys_speed1, abs_sys_speed0, abs_sys_resume
 ; 快速保存
 comb_quick_save := [abs_op_system, abs_sys_save, abs_sl_slot, abs_sl_ok]
 ; 快速读取
-comb_quick_load := [abs_op_system, abs_sys_load, abs_sl_slot, abs_sl_ok]
+comb_quick_load := [abs_op_system, abs_sub_start_load, abs_sys_load, abs_sl_slot, abs_sl_ok]
+
 
 
 
@@ -247,6 +303,8 @@ info_main =
 调整为最小速度: %k_comb_min_speed%
 快速保存: %k_comb_quick_save%
 快速读取: %k_comb_quick_load%
+快速关闭某个子菜单：
+    %k_op_backs_origin% + 对应子菜单快捷键
 )
 info_to_show := info_main
 
@@ -265,11 +323,27 @@ click_abs_op_negotiate := Func("one_click").Bind(abs_op_negotiate, , if_pos_res)
 click_abs_op_info := Func("one_click").Bind(abs_op_info, , if_pos_res)
 click_abs_op_assign := Func("one_click").Bind(abs_op_assign, , if_pos_res)
 click_abs_op_incident := Func("one_click").Bind(abs_op_incident, , if_pos_res)
+;返回快捷键
+click_abs_back_op_history := Func("one_click").Bind(abs_back_op_history, , if_pos_res)
+click_abs_back_op_analyze := Func("one_click").Bind(abs_back_op_analyze, , if_pos_res)
+click_abs_sys_resume := Func("one_click").Bind(abs_sys_resume, , if_pos_res)
+click_abs_back_op_characters := Func("one_click").Bind(abs_back_op_characters, , if_pos_res)
+click_abs_back_op_buildings := Func("one_click").Bind(abs_back_op_buildings, , if_pos_res)
+click_abs_back_op_market := Func("one_click").Bind(abs_back_op_market, , if_pos_res)
+click_abs_back_op_move := Func("one_click").Bind(abs_back_op_move, , if_pos_res)
+click_abs_back_op_attack := Func("one_click").Bind(abs_back_op_attack, , if_pos_res)
+click_abs_back_op_scout := Func("one_click").Bind(abs_back_op_scout, , if_pos_res)
+click_abs_back_op_negotiate := Func("one_click").Bind(abs_back_op_negotiate, , if_pos_res)
+click_abs_back_op_info := Func("one_click").Bind(abs_back_op_info, , if_pos_res)
+click_abs_back_op_assign := Func("one_click").Bind(abs_back_op_assign, , if_pos_res)
+click_abs_back_op_incident := Func("one_click").Bind(abs_back_op_incident, , if_pos_res)
+
 ;合成快捷键
 click_comb_max_speed := Func("multi_clicks").Bind(comb_max_speed, if_pos_res)
 click_comb_min_speed := Func("multi_clicks").Bind(comb_min_speed, if_pos_res)
 click_comb_quick_save := Func("multi_clicks").Bind(comb_quick_save, if_pos_res)
 click_comb_quick_load := Func("multi_clicks").Bind(comb_quick_load, if_pos_res)
+
 
 ;显示提示
 show_tip_func := Func("show_tips").Bind(info_to_show)
@@ -290,16 +364,32 @@ Hotkey, %k_op_negotiate%, % click_abs_op_negotiate
 Hotkey, %k_op_info%, % click_abs_op_info
 Hotkey, %k_op_assign%, % click_abs_op_assign
 Hotkey, %k_op_incident%, % click_abs_op_incident
+;绑定返回快捷键
+Hotkey, %k_op_backs%%k_op_history%, % click_abs_back_op_history
+Hotkey, %k_op_backs%%k_op_history%, % click_abs_back_op_history
+Hotkey, %k_op_backs%%k_op_analyze%, % click_abs_back_op_analyze
+Hotkey, %k_op_backs%%k_op_system%, % click_abs_sys_resume
+Hotkey, %k_op_backs%%k_op_characters%, % click_abs_back_op_characters
+Hotkey, %k_op_backs%%k_op_buildings%, % click_abs_back_op_buildings
+Hotkey, %k_op_backs%%k_op_market%, % click_abs_back_op_market
+Hotkey, %k_op_backs%%k_op_move%, % click_abs_back_op_move
+Hotkey, %k_op_backs%%k_op_attack%, % click_abs_back_op_attack
+Hotkey, %k_op_backs%%k_op_scout%, % click_abs_back_op_scout
+Hotkey, %k_op_backs%%k_op_negotiate%, % click_abs_back_op_negotiate
+Hotkey, %k_op_backs%%k_op_info%, % click_abs_back_op_info
+Hotkey, %k_op_backs%%k_op_assign%, % click_abs_back_op_assign
+Hotkey, %k_op_backs%%k_op_incident%, % click_abs_back_op_incident
+
+
 ;绑定合成快捷键
 Hotkey, %k_comb_max_speed%, % click_comb_max_speed
 Hotkey, %k_comb_min_speed%, % click_comb_min_speed
 Hotkey, %k_comb_quick_save%, % click_comb_quick_save
 Hotkey, %k_comb_quick_load%, % click_comb_quick_load
 
+
 ;绑定提示
 Hotkey, %hold_k_tooltip%, % show_tip_func
-
-
 
 
 
