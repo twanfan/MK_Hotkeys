@@ -130,6 +130,21 @@ IniRead, back_op_info, .\config.ini, Proportions, back_op_info
 IniRead, back_op_assign, .\config.ini, Proportions, back_op_assign
 IniRead, back_op_incident, .\config.ini, Proportions, back_op_incident
 
+IniRead, region_s_equipment, .\config.ini, Proportions, region_s_equipment
+IniRead, region_e_equipment, .\config.ini, Proportions, region_e_equipment
+IniRead, region_s_inventory, .\config.ini, Proportions, region_s_inventory
+IniRead, region_e_inventory, .\config.ini, Proportions, region_e_inventory
+IniRead, region_s_storage, .\config.ini, Proportions, region_s_storage
+IniRead, region_e_storage, .\config.ini, Proportions, region_e_storage
+IniRead, item_portrait, .\config.ini, Proportions, item_portrait
+IniRead, item_inv_1, .\config.ini, Proportions, item_inv_1
+IniRead, item_storage_1, .\config.ini, Proportions, item_storage_1
+IniRead, item_equipment_1, .\config.ini, Proportions, item_equipment_1
+IniRead, item_equipment_2, .\config.ini, Proportions, item_equipment_2
+IniRead, item_equipment_3, .\config.ini, Proportions, item_equipment_3
+IniRead, item_equipment_4, .\config.ini, Proportions, item_equipment_4
+
+
 
 
 ;从配置文件读取快捷键信息
@@ -220,6 +235,22 @@ abs_back_op_info := find_pos(back_op_info)
 abs_back_op_assign := find_pos(back_op_assign)
 abs_back_op_incident := find_pos(back_op_incident)
 
+abs_region_s_equipment := find_pos(region_s_equipment)
+abs_region_e_equipment := find_pos(region_e_equipment)
+abs_region_s_inventory := find_pos(region_s_inventory)
+abs_region_e_inventory := find_pos(region_e_inventory)
+abs_region_s_storage := find_pos(region_s_storage)
+abs_region_e_storage := find_pos(region_e_storage)
+
+abs_item_portrait := find_pos(item_portrait)
+abs_item_inv_1 := find_pos(item_inv_1)
+abs_item_storage_1 := find_pos(item_storage_1)
+abs_item_equipment_1 := find_pos(item_equipment_1)
+abs_item_equipment_2 := find_pos(item_equipment_2)
+abs_item_equipment_3 := find_pos(item_equipment_3)
+abs_item_equipment_4 := find_pos(item_equipment_4)
+
+
 
 
 mouse_position_stored := [0, 0]
@@ -230,7 +261,9 @@ one_click(abs_pos, update_stored_position:=True, to_restore:=True){
         MouseGetPos, x, y
         mouse_position_stored := [x, y]
     }
-    MouseMove, % abs_pos[1], % abs_pos[2]
+    if not (abs_pos = "Here"){
+        MouseMove, % abs_pos[1], % abs_pos[2]
+    }
     sleep 1
     MouseClick
     sleep 1
@@ -255,6 +288,53 @@ multi_clicks(abs_poss, to_restore:=True){
     }
     return
 }
+; 判断鼠标当前所在区域
+get_mouse_region(){
+    global abs_region_s_equipment
+    global abs_region_e_equipment
+    global abs_region_s_inventory
+    global abs_region_e_inventory
+    global abs_region_s_storage
+    global abs_region_e_storage
+    
+    MouseGetPos, x, y
+    if ((x > abs_region_s_equipment[1]) and (x < abs_region_e_equipment[1]) and (y > abs_region_s_equipment[2]) and (y < abs_region_e_equipment[2])){
+        return "equipment"
+    }else if ((x > abs_region_s_inventory[1]) and (x < abs_region_e_inventory[1]) and (y > abs_region_s_inventory[2]) and (y < abs_region_e_inventory[2])){
+        return "inventory"
+    }else if ((x > abs_region_s_storage[1]) and (x < abs_region_e_storage[1]) and (y > abs_region_s_storage[2]) and (y < abs_region_e_storage[2])){
+        return "storage"
+    }else{
+        return "undefined"
+    }
+}
+; 物品操作点击
+item_clicks(operation:="move", to_restore:=True){
+    global comb_equipment_to_storage
+    global comb_equipment_to_inventory
+    global comb_storage_to_inventory
+    global comb_storage_to_equipment
+    global comb_use_item
+    current_region := get_mouse_region()
+
+    if (operation = "move"){
+        if ((current_region = "equipment") or (current_region = "inventory")){
+            multi_clicks(comb_equipment_to_storage, to_restore)
+        }else if (current_region = "storage"){
+            multi_clicks(comb_storage_to_inventory, to_restore)
+        }
+    }else if (operation = "equip"){
+        if ((current_region = "storage") or (current_region = "inventory")){
+            multi_clicks(comb_storage_to_equipment, to_restore)
+        }
+    }else if (operation = "use"){
+        if ((current_region = "storage") or (current_region = "inventory")){
+            multi_clicks(comb_use_item, to_restore)
+        }
+    }
+    return
+}
+
 ;定义多次点击进行的活动
 ; 调整为最大速度
 comb_max_speed := [abs_op_system, abs_sys_speed5, abs_sys_resume]
@@ -264,6 +344,17 @@ comb_min_speed := [abs_op_system, abs_sys_speed1, abs_sys_speed0, abs_sys_resume
 comb_quick_save := [abs_op_system, abs_sys_save, abs_sl_slot, abs_sl_ok]
 ; 快速读取
 comb_quick_load := [abs_op_system, abs_sub_start_load, abs_sys_load, abs_sl_slot, abs_sl_ok]
+
+; 装备/包袱至仓库
+comb_equipment_to_storage := ["Here", abs_item_storage_1]
+; 装备至包袱
+comb_equipment_to_inventory := ["Here", abs_item_inv_1]
+; 仓库至包袱
+comb_storage_to_inventory := ["Here", abs_item_inv_1]
+; 仓库/包袱至装备
+comb_storage_to_equipment := ["Here", abs_item_equipment_1, abs_item_equipment_2, abs_item_equipment_3, abs_item_equipment_4]
+; 使用物品
+comb_use_item := ["Here", abs_item_portrait]
 
 
 
@@ -305,6 +396,10 @@ info_main =
 快速读取: %k_comb_quick_load%
 快速关闭某个子菜单：
     %k_op_backs_origin% + 对应子菜单快捷键
+在人物包袱/装备栏与仓库间移动物品：
+    Shift + 左键点击要移动的物品
+使用包袱/仓库中的物品：
+    Ctrl + Shift + 左键点击要使用的物品
 )
 info_to_show := info_main
 
@@ -343,6 +438,12 @@ click_comb_max_speed := Func("multi_clicks").Bind(comb_max_speed, if_pos_res)
 click_comb_min_speed := Func("multi_clicks").Bind(comb_min_speed, if_pos_res)
 click_comb_quick_save := Func("multi_clicks").Bind(comb_quick_save, if_pos_res)
 click_comb_quick_load := Func("multi_clicks").Bind(comb_quick_load, if_pos_res)
+
+click_equipment_to_storage := Func("item_clicks").Bind("move", if_pos_res)
+; click_equipment_to_inventory := Func("item_clicks").Bind("move", if_pos_res)
+; click_storage_to_inventory := Func("item_clicks").Bind("move", if_pos_res)
+click_storage_to_equipment := Func("item_clicks").Bind("equip", if_pos_res)
+click_use_item := Func("item_clicks").Bind("use", if_pos_res)
 
 
 ;显示提示
@@ -386,6 +487,10 @@ Hotkey, %k_comb_max_speed%, % click_comb_max_speed
 Hotkey, %k_comb_min_speed%, % click_comb_min_speed
 Hotkey, %k_comb_quick_save%, % click_comb_quick_save
 Hotkey, %k_comb_quick_load%, % click_comb_quick_load
+
+Hotkey, +LButton, % click_equipment_to_storage
+; Hotkey, !+LButton, % click_storage_to_equipment
+Hotkey, ^+LButton, % click_use_item
 
 
 ;绑定提示
