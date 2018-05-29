@@ -15,8 +15,8 @@ CoordMode ToolTip
 ;鼠标速度设置为最快
 SetDefaultMouseSpeed, 0
 
-;debug
-; ToolTip, script running..., 0, 0, 19
+; debug
+; ToolTip, running, 0, 0, 19
 
 ;定义程序窗口名称
 SetTitleMatchMode, RegEx
@@ -65,7 +65,7 @@ HideTrayTip() { ;清除托盘提示
         Menu Tray, Icon
     }
 }
-SetTimer, detect_active, 1000
+
 
 
 ;从配置文件读取基本信息
@@ -80,8 +80,13 @@ tooltip_x := find_pos(tooltip_prop_xy)[1]
 tooltip_y := find_pos(tooltip_prop_xy)[2]
 ;鼠标点击后是否回到原始位置
 Iniread, if_pos_res, .\config.ini, General, mouse_position_restore
-;是否使用绝对
+;是否使用绝对位置
 Iniread, use_abs_pos, .\config.ini, General, use_abs_pos
+;是否显示任务栏提示
+Iniread, show_tray_tips, .\config.ini, General, show_tray_tips
+if (show_tray_tips){
+    SetTimer, detect_active, 1000
+}
 
 WinWait, %win_title%
 sleep, 500
@@ -116,6 +121,7 @@ IniRead, sl_cancel, .\config.ini, Proportions, sl_cancel
 IniRead, sl_slot, .\config.ini, Proportions, sl_slot
 
 IniRead, sub_start_load, .\config.ini, Proportions, sub_start_load
+IniRead, sub_start_exit, .\config.ini, Proportions, sub_start_exit
 
 IniRead, back_op_history, .\config.ini, Proportions, back_op_history
 IniRead, back_op_analyze, .\config.ini, Proportions, back_op_analyze
@@ -144,6 +150,11 @@ IniRead, item_equipment_2, .\config.ini, Proportions, item_equipment_2
 IniRead, item_equipment_3, .\config.ini, Proportions, item_equipment_3
 IniRead, item_equipment_4, .\config.ini, Proportions, item_equipment_4
 
+IniRead, region_s_combat_i, .\config.ini, Proportions, region_s_combat_i
+IniRead, region_e_combat_i, .\config.ini, Proportions, region_e_combat_i
+IniRead, item_combat_weapon, .\config.ini, Proportions, item_combat_weapon
+IniRead, item_combat_weapon_1, .\config.ini, Proportions, item_combat_weapon_1
+
 
 
 
@@ -168,6 +179,8 @@ Iniread, k_comb_max_speed, .\config.ini, Keys, k_comb_max_speed
 Iniread, k_comb_min_speed, .\config.ini, Keys, k_comb_min_speed
 Iniread, k_comb_quick_save, .\config.ini, Keys, k_comb_quick_save
 Iniread, k_comb_quick_load, .\config.ini, Keys, k_comb_quick_load
+
+Iniread, k_comb_fast_exit, .\config.ini, Keys, k_comb_fast_exit
 
 ;按键字符转换为前缀
 key_to_prefix(key){
@@ -221,6 +234,7 @@ abs_sl_cancel := find_pos(sl_cancel)
 abs_sl_slot := find_pos(sl_slot)
 
 abs_sub_start_load := find_pos(sub_start_load)
+abs_sub_start_exit := find_pos(sub_start_exit)
 
 abs_back_op_history := find_pos(back_op_history)
 abs_back_op_analyze := find_pos(back_op_analyze)
@@ -250,10 +264,14 @@ abs_item_equipment_2 := find_pos(item_equipment_2)
 abs_item_equipment_3 := find_pos(item_equipment_3)
 abs_item_equipment_4 := find_pos(item_equipment_4)
 
+abs_region_s_combat_i := find_pos(region_s_combat_i)
+abs_region_e_combat_i := find_pos(region_e_combat_i)
+abs_item_combat_weapon := find_pos(item_combat_weapon)
+abs_item_combat_weapon_1 := find_pos(item_combat_weapon_1)
 
 
 
-mouse_position_stored := [0, 0]
+mouse_position_stored := [10, 10]
 ;进行单次鼠标点击（位置、是否更新位置信息、点击后是否还原位置）
 one_click(abs_pos, update_stored_position:=True, to_restore:=True){
     global mouse_position_stored
@@ -262,20 +280,22 @@ one_click(abs_pos, update_stored_position:=True, to_restore:=True){
         mouse_position_stored := [x, y]
     }
     if not (abs_pos = "Here"){
-        MouseMove, % abs_pos[1], % abs_pos[2]
+        if (abs_pos = "click_stored_position"){
+            MouseMove, % mouse_position_stored[1], % mouse_position_stored[2]
+        }else{
+            MouseMove, % abs_pos[1], % abs_pos[2]
+        }
     }
     sleep 1
     MouseClick
-    sleep 1
-    ; MouseClick, left, % abs_pos[1], % abs_pos[2]
-    ; sleep 20
+    sleep 5
     if (to_restore){
         MouseMove % mouse_position_stored[1], % mouse_position_stored[2]
     }
     return
 }
 ; 进行多次鼠标点击（位置、是否还原）
-multi_clicks(abs_poss, to_restore:=True){
+multi_clicks(abs_poss, to_restore:=True, latency:=0){
     for k, v in abs_poss{
         if (k=1){
             one_click(v, True, False)
@@ -284,7 +304,7 @@ multi_clicks(abs_poss, to_restore:=True){
         }else{
             one_click(v, False, False)
         }
-        ; sleep, 50
+        sleep, %latency%
     }
     return
 }
@@ -296,7 +316,9 @@ get_mouse_region(){
     global abs_region_e_inventory
     global abs_region_s_storage
     global abs_region_e_storage
-    
+    global abs_region_s_combat_i
+    global abs_region_e_combat_i
+
     MouseGetPos, x, y
     if ((x > abs_region_s_equipment[1]) and (x < abs_region_e_equipment[1]) and (y > abs_region_s_equipment[2]) and (y < abs_region_e_equipment[2])){
         return "equipment"
@@ -304,6 +326,8 @@ get_mouse_region(){
         return "inventory"
     }else if ((x > abs_region_s_storage[1]) and (x < abs_region_e_storage[1]) and (y > abs_region_s_storage[2]) and (y < abs_region_e_storage[2])){
         return "storage"
+    }else if ((x > abs_region_s_combat_i[1]) and (x < abs_region_e_combat_i[1]) and (y > abs_region_s_combat_i[2]) and (y < abs_region_e_combat_i[2])){
+        return "combat_i"
     }else{
         return "undefined"
     }
@@ -315,8 +339,9 @@ item_clicks(operation:="move", to_restore:=True){
     global comb_storage_to_inventory
     global comb_storage_to_equipment
     global comb_use_item
+    global comb_change_weapon
     current_region := get_mouse_region()
-
+    ; MsgBox, %current_region%
     if (operation = "move"){
         if ((current_region = "equipment") or (current_region = "inventory")){
             multi_clicks(comb_equipment_to_storage, to_restore)
@@ -331,6 +356,11 @@ item_clicks(operation:="move", to_restore:=True){
         if ((current_region = "storage") or (current_region = "inventory")){
             multi_clicks(comb_use_item, to_restore)
         }
+    }else if (operation = "change_weapon"){
+        ; if ((current_region = "combat_i") or (current_region = "storag")){
+        ;     multi_clicks(comb_change_weapon, to_restore)
+        ; }
+        multi_clicks(comb_change_weapon, to_restore)
     }
     return
 }
@@ -356,6 +386,11 @@ comb_storage_to_equipment := ["Here", abs_item_equipment_1, abs_item_equipment_2
 ; 使用物品
 comb_use_item := ["Here", abs_item_portrait]
 
+; 切换武器
+comb_change_weapon := ["Here", abs_item_combat_weapon, "click_stored_position"]
+
+; 快速退出
+comb_fast_exit := [abs_op_system, abs_sys_exit, abs_sys_exit_ok, abs_sub_start_exit]
 
 
 
@@ -400,6 +435,10 @@ info_main =
     Shift + 左键点击要移动的物品
 使用包袱/仓库中的物品：
     Ctrl + Shift + 左键点击要使用的物品
+战斗中切换武器：
+    Alt + 左键点击要切换的武器
+快速退出游戏：
+    Ctrl + Alt + Shift + %k_comb_fast_exit%
 )
 info_to_show := info_main
 
@@ -439,11 +478,14 @@ click_comb_min_speed := Func("multi_clicks").Bind(comb_min_speed, if_pos_res)
 click_comb_quick_save := Func("multi_clicks").Bind(comb_quick_save, if_pos_res)
 click_comb_quick_load := Func("multi_clicks").Bind(comb_quick_load, if_pos_res)
 
+click_comb_fast_exit := Func("multi_clicks").Bind(comb_fast_exit, if_pos_res, 100)
+
 click_equipment_to_storage := Func("item_clicks").Bind("move", if_pos_res)
 ; click_equipment_to_inventory := Func("item_clicks").Bind("move", if_pos_res)
 ; click_storage_to_inventory := Func("item_clicks").Bind("move", if_pos_res)
 click_storage_to_equipment := Func("item_clicks").Bind("equip", if_pos_res)
 click_use_item := Func("item_clicks").Bind("use", if_pos_res)
+click_change_weapon := Func("item_clicks").Bind("change_weapon", if_pos_res)
 
 
 ;显示提示
@@ -488,9 +530,12 @@ Hotkey, %k_comb_min_speed%, % click_comb_min_speed
 Hotkey, %k_comb_quick_save%, % click_comb_quick_save
 Hotkey, %k_comb_quick_load%, % click_comb_quick_load
 
+Hotkey, ^!+%k_comb_fast_exit%, % click_comb_fast_exit
+
 Hotkey, +LButton, % click_equipment_to_storage
 ; Hotkey, !+LButton, % click_storage_to_equipment
 Hotkey, ^+LButton, % click_use_item
+Hotkey, !LButton, % click_change_weapon
 
 
 ;绑定提示
@@ -499,196 +544,5 @@ Hotkey, %hold_k_tooltip%, % show_tip_func
 
 
 ToolTip, , , , 20
-
-
-; mode_main := ["info_main", abs_main_1, abs_main_2, abs_main_3, abs_main_4]
-; mode_sys := ["info_sys", abs_sys_1, abs_sys_2]
-; mode_sl := ["info_sl", abs_sl_1, abs_sl_2]
-
-
-
-; array := {ten: 10, twenty: 20, thirty: 30}
-; relative_positions := {"tooltip_main": [tooltip_prop_x, tooltip_prop_y]
-;     ,"tmp1":    [.2, .3]
-;     ,"tmp2":    [.5, .8]}
-; tmp := relative_positions["tmp2"][2]
-; MsgBox %tmp%
-
-
-; func:
-;     KeyWait %k_tooltip%, D
-;     ToolTip, altdownnow, tooltip_x, tooltip_y, 20
-;     ; ToolTip, altdownnow, A_ScreenWidth/2, A_ScreenHeight/2, 1
-;     SetTimer detect_key_press, 0
-;     KeyWait %k_tooltip%
-;     SetTimer detect_key_press, off
-;     ToolTip,,,, 20
-;     ToolTip,,,, 1
-;     return
-
-
-; detect_key_press:
-;     if GetKeyState(1, "P")
-;     {
-;         SetTimer detect_key_press, off
-;         ImageSearch, OutputVarX, OutputVarY, 0, 0, 2000, 2000, .\Images\m1.png
-;         if ErrorLevel   ; i.e. it's not blank or zero.
-;             MsgBox, an error occur, level %ErrorLevel%
-;         if (OutputVarX = "")
-;         {
-;             MsgBox NF, %A_ScreenWidth%, %A_ScreenHeight%
-;         }
-;         else
-;         {
-;             MouseMove, OutputVarX, OutputVarY
-;             MsgBox %OutputVarX%,%OutputVarY%
-;         }
-;         return
-;     }
-;     if GetKeyState(2, "P")
-;     {
-;         SetTimer detect_key_press, off
-;         MouseMove, 500, 500
-;         MsgBox 2 pressed
-;         return
-;     }
-; return
-
-; ~LAlt::
-; ToolTip, altdownnow, A_ScreenWidth, A_ScreenHeight
-; KeyWait, 1, D
-; ToolTip, 1down, A_ScreenWidth, A_ScreenHeight
-; KeyWait, LAlt
-; ToolTip
-
-; AltIsDown := GetKeyState(Alt)
-
-; if (GetKeyState(Alt))
-; {
-;     #Persistent
-;     ToolTip, altdownnow, A_ScreenWidth, A_ScreenHeight
-;     return
-; }
-
-
-
-
-
-
-
-; ; 
-; ;显示提示
-; #Persistent
-; ToolTip, %OutputVar%, A_ScreenWidth, A_ScreenHeight
-; SetTimer, RemoveToolTip, 600
-; return
-
-; RemoveToolTip:
-; SetTimer, RemoveToolTip, Off
-; ToolTip
-; ;
-; ExitApp
-
-
-; SetTitleMatchMode, RegEx
-; a = "a"
-; b = "b"
-; if WinActive("ahk_class Chrome_WidgetWin_1") and WinActive(" - Google Chrome$")
-; {
-;     MsgBox, %a%
-; }
-; else
-; {
-;     MsgBox, %b%
-; }
-
-
-
-
-;脚本部分↑
-;========================================================================================
-;========================================================================================
-;========================================================================================
-;========================================================================================
-;========================================================================================
-;========================================================================================
-;========================================================================================
-;快捷键部分↓
-
-
-; tmp := [100, 100]
-; move_click(target){
-;     x := target[1]
-;     y := target[2]
-;     Send, {Click %x%, %y%}
-; }
-
-
-; Hotkey, IfWinActive, %win_title%
-; Hotkey, +a, % move_click(tmp)
-; Hotkey, +b, % move_click(tmp)
-
-
-
-; move_click(tmp)
-
-
-
-/*显示提示
-mode_points := []
-show_tips(mode)
-{
-    global tooltip_x
-    global tooltip_y
-    global mode_points
-    mode_info := mode[1]
-    mode.RemoveAt(1)
-    mode_points :=[]
-    for k in mode{
-        mode_points.push(mode[k]*)
-    }
-    mode_len_points := mode_points.Length()
-    ;显示主要提示
-    ToolTip, %mode_info%, tooltip_x, tooltip_y, 20
-    ;显示此模式下所有提示
-    for k in mode_points{
-        ToolTip, 1, mode_points[k][1], mode_points[k][2], k
-    }
-    return
-}
-hide_tips()
-{
-    global mode_points
-    ToolTip, , , , 20
-    for k in mode_points{
-        ToolTip, , , , k
-    }
-    return
-}
-
-
-;快捷键仅在程序进行时启用
-#if WinActive(win_title)
-
-;按住中键？显示提示进行模式选择
-; ~*LShift::
-~*MButton::
-current_mode := mode_main.Clone()
-show_tips(current_mode)
-loop
-{
-    Sleep, 10
-    ; if !GetKeyState("LShift", "P")
-    if !GetKeyState("MButton", "P")
-        break
-}
-hide_tips()
-return
-
-#if
-
-*/
-
-
 ;退出键，debug用
 ^!+[::ExitApp
