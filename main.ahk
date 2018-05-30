@@ -73,6 +73,7 @@ IniRead, k_tooltip, .\config.ini, Keys, k_tooltip
 hold_k_tooltip := "*"k_tooltip
 IniRead, tooltip_prop_x, .\config.ini, General, tooltip_prop_x
 IniRead, tooltip_prop_y, .\config.ini, General, tooltip_prop_y
+IniRead, operation_interval, .\config.ini, General, operation_interval
 
 ;计算主要提示显示位置
 tooltip_prop_xy = %tooltip_prop_x%,%tooltip_prop_y%
@@ -87,6 +88,9 @@ Iniread, show_tray_tips, .\config.ini, General, show_tray_tips
 if (show_tray_tips){
     SetTimer, detect_active, 1000
 }
+;计算使用的半间隔时间
+half_interval := Ceil(Abs(operation_interval/2))
+; MsgBox, %half_interval%
 
 WinWait, %win_title%
 sleep, 500
@@ -275,6 +279,7 @@ mouse_position_stored := [10, 10]
 ;进行单次鼠标点击（位置、是否更新位置信息、点击后是否还原位置）
 one_click(abs_pos, update_stored_position:=True, to_restore:=True){
     global mouse_position_stored
+    global half_interval
     if (update_stored_position){
         MouseGetPos, x, y
         mouse_position_stored := [x, y]
@@ -286,9 +291,9 @@ one_click(abs_pos, update_stored_position:=True, to_restore:=True){
             MouseMove, % abs_pos[1], % abs_pos[2]
         }
     }
-    sleep 1
+    sleep %half_interval%
     MouseClick
-    sleep 5
+    sleep %half_interval%
     if (to_restore){
         MouseMove % mouse_position_stored[1], % mouse_position_stored[2]
     }
