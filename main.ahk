@@ -19,9 +19,9 @@ SetDefaultMouseSpeed, 0
 ; ToolTip, running, 0, 0, 19
 
 ;定义程序窗口名称
-SetTitleMatchMode, RegEx
-win_title := "Martial Kingdoms"
-; win_title := "ahk_class Notepad"
+; SetTitleMatchMode, RegEx
+; win_title := "Martial Kingdoms"
+win_title := "ahk_class Notepad"
 
 
 ;检测程序运行情况并显示通知
@@ -64,6 +64,7 @@ HideTrayTip() { ;清除托盘提示
         Sleep 200  ; It may be necessary to adjust this sleep.
         Menu Tray, Icon
     }
+    return
 }
 
 
@@ -292,7 +293,15 @@ one_click(abs_pos, update_stored_position:=True, to_restore:=True){
         }
     }
     sleep %half_interval%
+
     MouseClick
+    Click
+    MouseClick, Left
+    Send {vk01sc000}
+    Send {Click}
+    Send {LButton}
+    ControlClick
+
     sleep %half_interval%
     if (to_restore){
         MouseMove % mouse_position_stored[1], % mouse_position_stored[2]
@@ -547,7 +556,10 @@ Hotkey, !LButton, % click_change_weapon
 Hotkey, %hold_k_tooltip%, % show_tip_func
 
 
-
+;完成，取消显示初始提示
 ToolTip, , , , 20
+
+
+
 ;退出键，debug用
 ^!+[::ExitApp
