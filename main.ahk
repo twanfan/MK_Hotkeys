@@ -16,12 +16,12 @@ CoordMode ToolTip
 SetDefaultMouseSpeed, 0
 
 ; debug
-; ToolTip, running, 0, 0, 19
+; ToolTip, 快捷键工具调试信息, 0, 0, 19
 
 ;定义程序窗口名称
-; SetTitleMatchMode, RegEx
-; win_title := "Martial Kingdoms"
-win_title := "ahk_class Notepad"
+SetTitleMatchMode, RegEx
+win_title := "Martial Kingdoms"
+; win_title := "ahk_class Notepad"
 
 
 ;检测程序运行情况并显示通知
@@ -90,8 +90,7 @@ if (show_tray_tips){
     SetTimer, detect_active, 1000
 }
 ;计算使用的半间隔时间
-half_interval := Ceil(Abs(operation_interval/2))
-; MsgBox, %half_interval%
+half_interval := Max(Ceil(Abs(operation_interval/2)), 1)
 
 WinWait, %win_title%
 sleep, 500
@@ -160,6 +159,10 @@ IniRead, region_e_combat_i, .\config.ini, Proportions, region_e_combat_i
 IniRead, item_combat_weapon, .\config.ini, Proportions, item_combat_weapon
 IniRead, item_combat_weapon_1, .\config.ini, Proportions, item_combat_weapon_1
 
+IniRead, char_pay, .\config.ini, Proportions, char_pay
+IniRead, char_pay_inc, .\config.ini, Proportions, char_pay_inc
+IniRead, char_pay_dec, .\config.ini, Proportions, char_pay_dec
+IniRead, char_pay_ok, .\config.ini, Proportions, char_pay_ok
 
 
 
@@ -184,8 +187,12 @@ Iniread, k_comb_max_speed, .\config.ini, Keys, k_comb_max_speed
 Iniread, k_comb_min_speed, .\config.ini, Keys, k_comb_min_speed
 Iniread, k_comb_quick_save, .\config.ini, Keys, k_comb_quick_save
 Iniread, k_comb_quick_load, .\config.ini, Keys, k_comb_quick_load
+Iniread, k_comb_pay_decrease, .\config.ini, Keys, k_comb_pay_decrease
+Iniread, k_comb_pay_increase, .\config.ini, Keys, k_comb_pay_increase
 
 Iniread, k_comb_fast_exit, .\config.ini, Keys, k_comb_fast_exit
+Iniread, k_toggle_hotkeys, .\config.ini, Keys, k_toggle_hotkeys
+
 
 ;按键字符转换为前缀
 key_to_prefix(key){
@@ -197,7 +204,6 @@ key_to_prefix(key){
     }
 }
 k_op_backs := key_to_prefix(k_op_backs_origin)
-; MsgBox, %k_op_backs_origin%%k_op_backs%
 
 ;根据位置比例信息及当前分辨率计算实际位置
 find_pos(pos_info){
@@ -274,6 +280,10 @@ abs_region_e_combat_i := find_pos(region_e_combat_i)
 abs_item_combat_weapon := find_pos(item_combat_weapon)
 abs_item_combat_weapon_1 := find_pos(item_combat_weapon_1)
 
+abs_char_pay := find_pos(char_pay)
+abs_char_pay_inc := find_pos(char_pay_inc)
+abs_char_pay_dec := find_pos(char_pay_dec)
+abs_char_pay_ok := find_pos(char_pay_ok)
 
 
 mouse_position_stored := [10, 10]
@@ -293,15 +303,7 @@ one_click(abs_pos, update_stored_position:=True, to_restore:=True){
         }
     }
     sleep %half_interval%
-
     MouseClick
-    Click
-    MouseClick, Left
-    Send {vk01sc000}
-    Send {Click}
-    Send {LButton}
-    ControlClick
-
     sleep %half_interval%
     if (to_restore){
         MouseMove % mouse_position_stored[1], % mouse_position_stored[2]
@@ -388,6 +390,10 @@ comb_min_speed := [abs_op_system, abs_sys_speed1, abs_sys_speed0, abs_sys_resume
 comb_quick_save := [abs_op_system, abs_sys_save, abs_sl_slot, abs_sl_ok]
 ; 快速读取
 comb_quick_load := [abs_op_system, abs_sub_start_load, abs_sys_load, abs_sl_slot, abs_sl_ok]
+; 减少薪资
+comb_pay_decrease := [abs_char_pay, abs_char_pay_dec, abs_char_pay_ok]
+; 增加薪资
+comb_pay_increase := [abs_char_pay, abs_char_pay_inc, abs_char_pay_ok]
 
 ; 装备/包袱至仓库
 comb_equipment_to_storage := ["Here", abs_item_storage_1]
@@ -408,13 +414,14 @@ comb_fast_exit := [abs_op_system, abs_sys_exit, abs_sys_exit_ok, abs_sub_start_e
 
 
 
-
 ;显示提示
-show_tips(info){
+show_tips(){
+    Suspend, permit
+    global info_to_show
     global tooltip_x
     global tooltip_y
     global k_tooltip
-    ToolTip, %info%, tooltip_x, tooltip_y, 20
+    ToolTip, %info_to_show%, tooltip_x, tooltip_y, 20
     loop
     {
         Sleep, 10
@@ -424,7 +431,38 @@ show_tips(info){
     ToolTip, , , , 20
     return
 }
-info_main =
+
+toggle_info_to_show := "启用"
+info_to_show = ""
+refresh_info_to_show()
+refresh_info_to_show(){
+    global info_to_show
+
+    global k_tooltip
+    global k_op_history
+    global k_op_analyze
+    global k_op_system
+    global k_op_characters
+    global k_op_buildings
+    global k_op_market
+    global k_op_move
+    global k_op_attack
+    global k_op_scout
+    global k_op_negotiate
+    global k_op_info
+    global k_op_assign
+    global k_comb_pay_decrease
+    global k_comb_pay_increase
+    global k_comb_max_speed
+    global k_comb_min_speed
+    global k_comb_quick_save
+    global k_comb_quick_load
+    global k_op_backs_origin
+    global k_comb_fast_exit
+    global k_toggle_hotkeys
+    global toggle_info_to_show
+
+    info_to_show =
 (
 显示提示: %k_tooltip%
 历史: %k_op_history%
@@ -439,6 +477,8 @@ info_main =
 交涉: %k_op_negotiate%
 情报: %k_op_info%
 任命: %k_op_assign%
+减少薪资：%k_comb_pay_decrease%
+增加薪资：%k_comb_pay_increase%
 调整为最大速度: %k_comb_max_speed%
 调整为最小速度: %k_comb_min_speed%
 快速保存: %k_comb_quick_save%
@@ -453,8 +493,12 @@ info_main =
     Alt + 左键点击要切换的武器
 快速退出游戏：
     Ctrl + Alt + Shift + %k_comb_fast_exit%
+暂停 / 启用快捷键：Alt + %k_toggle_hotkeys%
+
+当前快捷键状态：%toggle_info_to_show%
 )
-info_to_show := info_main
+    return
+}
 
 ;生成点击函数对象
 ;一般快捷键
@@ -491,6 +535,8 @@ click_comb_max_speed := Func("multi_clicks").Bind(comb_max_speed, if_pos_res)
 click_comb_min_speed := Func("multi_clicks").Bind(comb_min_speed, if_pos_res)
 click_comb_quick_save := Func("multi_clicks").Bind(comb_quick_save, if_pos_res)
 click_comb_quick_load := Func("multi_clicks").Bind(comb_quick_load, if_pos_res)
+click_pay_decrease := Func("multi_clicks").Bind(comb_pay_decrease, if_pos_res)
+click_pay_increase := Func("multi_clicks").Bind(comb_pay_increase, if_pos_res)
 
 click_comb_fast_exit := Func("multi_clicks").Bind(comb_fast_exit, if_pos_res, 100)
 
@@ -503,9 +549,10 @@ click_change_weapon := Func("item_clicks").Bind("change_weapon", if_pos_res)
 
 
 ;显示提示
-show_tip_func := Func("show_tips").Bind(info_to_show)
+; show_tip_func := Func("show_tips").Bind(info_to_show)
 
 ;绑定点击函数快捷键，仅在程序运行时启用
+;设置启用条件
 Hotkey, IfWinActive, %win_title%
 ;绑定一般快捷键
 Hotkey, %k_op_history%, % click_abs_op_history
@@ -521,6 +568,8 @@ Hotkey, %k_op_negotiate%, % click_abs_op_negotiate
 Hotkey, %k_op_info%, % click_abs_op_info
 Hotkey, %k_op_assign%, % click_abs_op_assign
 Hotkey, %k_op_incident%, % click_abs_op_incident
+
+
 ;绑定返回快捷键
 Hotkey, %k_op_backs%%k_op_history%, % click_abs_back_op_history
 Hotkey, %k_op_backs%%k_op_history%, % click_abs_back_op_history
@@ -543,6 +592,8 @@ Hotkey, %k_comb_max_speed%, % click_comb_max_speed
 Hotkey, %k_comb_min_speed%, % click_comb_min_speed
 Hotkey, %k_comb_quick_save%, % click_comb_quick_save
 Hotkey, %k_comb_quick_load%, % click_comb_quick_load
+Hotkey, %k_comb_pay_decrease%, % click_pay_decrease
+Hotkey, %k_comb_pay_increase%, % click_pay_increase
 
 Hotkey, ^!+%k_comb_fast_exit%, % click_comb_fast_exit
 
@@ -551,9 +602,24 @@ Hotkey, +LButton, % click_equipment_to_storage
 Hotkey, ^+LButton, % click_use_item
 Hotkey, !LButton, % click_change_weapon
 
+;暂停、启用快捷键
+Hotkey, !%k_toggle_hotkeys%, toggle_hotkeys
+current_hotkeys_state := 1
+toggle_hotkeys(){
+    Suspend, permit
+    static state_to_info := ["暂停", "启用"]
+    global toggle_info_to_show
+    global current_hotkeys_state
+    Suspend, Toggle
+    current_hotkeys_state := !current_hotkeys_state
+    toggle_info_to_show := state_to_info[current_hotkeys_state + 1]
+    refresh_info_to_show()
+    return
+}
 
 ;绑定提示
-Hotkey, %hold_k_tooltip%, % show_tip_func
+Hotkey, %hold_k_tooltip%, show_tips
+; Hotkey, %hold_k_tooltip%, % show_tip_func
 
 
 ;完成，取消显示初始提示
